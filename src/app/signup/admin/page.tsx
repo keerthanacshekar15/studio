@@ -1,8 +1,7 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
-import { useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,30 +23,34 @@ function SubmitButton() {
 }
 
 export default function AdminSignupPage() {
-  const initialState: AdminSignupState = { message: '', success: false };
-  const [state, dispatch] = useActionState(adminSignup, initialState);
   const { toast } = useToast();
   const { login } = useAuth();
-
-  useEffect(() => {
-    if (state.message) {
-      if (state.success) {
+  
+  const initialState: AdminSignupState = { message: '', success: false };
+  
+  const formAction = async (prevState: AdminSignupState, formData: FormData): Promise<AdminSignupState> => {
+    const result = await adminSignup(prevState, formData);
+    if (result.message) {
+      if (result.success) {
         toast({
           title: 'Success',
-          description: state.message,
+          description: result.message,
         });
-        if (state.adminId) {
-            login(state.adminId, 'admin');
+        if (result.adminId) {
+            login(result.adminId, 'admin');
         }
       } else {
         toast({
           title: 'Error',
-          description: state.message,
+          description: result.message,
           variant: 'destructive',
         });
       }
     }
-  }, [state, toast, login]);
+    return result;
+  }
+  
+  const [state, dispatch] = useActionState(formAction, initialState);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
