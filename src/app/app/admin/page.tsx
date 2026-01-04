@@ -32,7 +32,7 @@ export default function AdminPage() {
         // If not an admin for some reason, don't show loading indefinitely.
         setIsDataLoading(false);
     }
-  }, []); // <-- This empty array is the definitive fix.
+  }, [user]); // <-- DEPENDING ON USER ensures it only runs once the user type is confirmed.
   
   const handleStatusChange = (userId: string, status: 'approved' | 'rejected') => {
     // This correctly filters the user from the local state, removing them from the UI
