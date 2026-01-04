@@ -15,7 +15,8 @@ export default function AdminPage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const { logout, user, isLoading } = useAuth();
   
-  // This effect now only runs once when the component mounts if the user is an admin.
+  // This effect will run ONLY ONCE when the component mounts.
+  // The empty dependency array [] is the key to preventing re-fetches.
   useEffect(() => {
     const fetchUsers = async () => {
       setIsDataLoading(true);
@@ -24,15 +25,18 @@ export default function AdminPage() {
       setIsDataLoading(false);
     }
     
+    // We still check if the user is an admin before fetching.
     if (user?.type === 'admin') {
       fetchUsers();
+    } else {
+        // If not an admin for some reason, don't show loading indefinitely.
+        setIsDataLoading(false);
     }
-  // The dependency on user.type ensures this data fetch happens only ONCE when the admin logs in.
-  }, [user?.type]); 
+  }, []); // <-- This empty array is the definitive fix.
   
   const handleStatusChange = (userId: string, status: 'approved' | 'rejected') => {
-    // This is the key fix: filter the user from the local state to remove them from the UI.
-    // This prevents the re-fetch and the infinite loop/duplication bug.
+    // This correctly filters the user from the local state, removing them from the UI
+    // without causing a re-fetch, which was the source of the duplication bug.
     setUsers((prevUsers) => prevUsers.filter((u) => u.userId !== userId));
   }
 
