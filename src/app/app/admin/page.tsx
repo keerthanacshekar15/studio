@@ -29,7 +29,8 @@ export default function AdminPage() {
   }, [user]);
   
   const handleStatusChange = (userId: string, status: 'approved' | 'rejected') => {
-    // Remove the user from the list instead of re-fetching to avoid loops
+    // This is the key fix: filter the user from the local state to remove them from the UI.
+    // This prevents the re-fetch and the infinite loop/duplication bug.
     setUsers((prevUsers) => prevUsers.filter((u) => u.userId !== userId));
   }
 
