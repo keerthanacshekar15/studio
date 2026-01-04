@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { User, Post, Notification, CreateUserDTO, Reply, Message } from './types';
+import type { User, Post, Notification, CreateUserDTO, Reply, Message, Chat } from './types';
 import { db } from './mock-db';
 
 // This file is now the single source of truth for server-side data operations.
@@ -89,7 +89,7 @@ export const getPostWithReplies = async (postId: string): Promise<{ post: Post; 
     return { post, replies };
 }
 
-export const addReplyToServer = async (postId: string, message: string, user: User): Promise<Reply> => {
+export const addReplyToServer = async (postId: string, message: string, user: User, parentReplyId?: string | null): Promise<Reply> => {
     const newReply: Reply = {
         replyId: `reply-${Date.now()}`,
         postId,
@@ -97,6 +97,7 @@ export const addReplyToServer = async (postId: string, message: string, user: Us
         repliedBy: user.userId,
         repliedByName: user.fullName,
         createdAt: Date.now(),
+        parentReplyId: parentReplyId || null,
     };
     db.addReply(newReply);
 
@@ -157,4 +158,8 @@ export const addMessage = async(chatId: string, text: string, sender: User): Pro
         timestamp: Date.now()
     }
     return db.addMessageToChat(chatId, message);
+}
+
+export const getChatsForUser = async (userId: string): Promise<Chat[]> => {
+    return db.getChatsForUser(userId);
 }

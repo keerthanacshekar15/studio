@@ -69,9 +69,10 @@ const initialReplies: Reply[] = [
     {
         replyId: 'reply-002',
         postId: 'post-001',
-        repliedBy: 'user-003-another',
-        repliedByName: 'Emily White',
-        message: 'Is it the 6th edition? I might have picked it up by mistake. Let me check.',
+        parentReplyId: 'reply-001',
+        repliedBy: 'user-001-approved',
+        repliedByName: 'Jane Doe',
+        message: 'Oh really? I will check there, thanks!',
         createdAt: Date.now() - 18 * 60 * 60 * 1000, // 18 hours ago
     }
 ];
@@ -120,9 +121,6 @@ export const db = {
   getPosts: async (): Promise<Post[]> => [...posts].sort((a, b) => b.createdAt - a.createdAt),
   getPostById: async (postId: string): Promise<Post | undefined> => posts.find(p => p.postId === postId),
   addPost: (post: Post) => {
-    if (!post.itemImageURL) {
-      delete post.itemImageURL;
-    }
     posts.unshift(post);
   },
   
@@ -137,6 +135,7 @@ export const db = {
   },
 
   // Chat functions
+  getChatsForUser: async(userId: string): Promise<Chat[]> => [...chats].filter(c => c.userAId === userId || c.userBId === userId).sort((a, b) => (b.messages.at(-1)?.timestamp ?? 0) - (a.messages.at(-1)?.timestamp ?? 0)),
   getChatByPostAndUser: async(postId: string, userBId: string): Promise<Chat | undefined> => chats.find(c => c.postId === postId && c.userBId === userBId),
   getOrCreateChat: async(postId: string, userA: User, userB: User): Promise<Chat> => {
     let chat = chats.find(c => c.postId === postId && ((c.userAId === userA.userId && c.userBId === userB.userId) || (c.userAId === userB.userId && c.userBId === userA.userId)));
