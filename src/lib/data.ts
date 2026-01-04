@@ -5,7 +5,6 @@ import {
   collection,
   doc,
   addDoc,
-  setDoc,
   getDoc,
   getDocs,
   query,
@@ -13,7 +12,7 @@ import {
   updateDoc,
   orderBy,
   limit,
-} from 'firebase/firestore';
+} from 'firebase-admin/firestore';
 import { firestore } from '@/firebase/server-init';
 import type { User, Post, Notification } from './types';
 
@@ -85,8 +84,7 @@ export const createUser = async (
   };
 
   try {
-    const usersCollection = collection(firestore, USERS_COLLECTION);
-    const newUserRef = await addDoc(usersCollection, newUserPayload);
+    const newUserRef = await addDoc(collection(firestore, USERS_COLLECTION), newUserPayload);
 
     const newUser: User = {
         ...newUserPayload,
@@ -126,9 +124,10 @@ export const getPosts = async (): Promise<Post[]> => {
     orderBy('createdAt', 'desc')
   );
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(
+  const posts = querySnapshot.docs.map(
     doc => ({ ...doc.data(), postId: doc.id } as Post)
-  ).filter(post => post.expiresAt > Date.now());
+  );
+  return posts.filter(post => post.expiresAt > Date.now());
 };
 
 export const createPost = async (
