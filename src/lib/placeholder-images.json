@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "id-card-1",
+      "description": "A placeholder image for a college ID card.",
+      "imageUrl": "https://images.unsplash.com/photo-1614267119077-51bdcbf9f77a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxpZCUyMGNhcmR8ZW58MHx8fHwxNzY3NDI2OTQ4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "id card"
+    },
+    {
+      "id": "id-card-2",
+      "description": "A placeholder image for a college ID card.",
+      "imageUrl": "https://images.unsplash.com/photo-1626522139680-ed61b221528e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxpZCUyMGNhcmR8ZW58MHx8fHwxNzY3NDI2OTQ4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "id card"
+    },
+    {
+      "id": "id-card-3",
+      "description": "A placeholder image for a college ID card.",
+      "imageUrl": "https://images.unsplash.com/photo-1487637419635-a2a471ff5c7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxpZCUyMGNhcmR8ZW58MHx8fHwxNzY3NDI2OTQ4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "id card"
+    },
+    {
+      "id": "lost-keys",
+      "description": "A placeholder image for a set of lost keys.",
+      "imageUrl": "https://images.unsplash.com/photo-1722487631997-cf1e0f92c2c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxrZXlzfGVufDB8fHx8MTc2NzQzNzkyNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "keys"
+    },
+    {
+      "id": "lost-wallet",
+      "description": "A placeholder image for a lost wallet.",
+      "imageUrl": "https://images.unsplash.com/photo-1624538000860-24716b9050f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx3YWxsZXR8ZW58MHx8fHwxNzY3NTA2NTYwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wallet"
+    },
+    {
+      "id": "lost-phone",
+      "description": "A placeholder image for a lost phone.",
+      "imageUrl": "https://images.unsplash.com/photo-1488509082528-cefbba5ad692?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwaG9uZXxlbnwwfHx8fDE3Njc0MjY5NDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "phone"
+    },
+    {
+      "id": "found-bottle",
+      "description": "A placeholder image for a found water bottle.",
+      "imageUrl": "https://images.unsplash.com/photo-1530711654140-23ef9ad45094?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3YXRlciUyMGJvdHRsZXxlbnwwfHx8fDE3Njc0NzA5NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "water bottle"
+    },
+    {
+      "id": "user-avatar-1",
+      "description": "Placeholder avatar for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjczOTYzMDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "user-avatar-2",
+      "description": "Placeholder avatar for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1590086782792-42dd2350140d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjczOTYzMDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "user-avatar-3",
+      "description": "Placeholder avatar for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjczOTYzMDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    }
+  ]
 }

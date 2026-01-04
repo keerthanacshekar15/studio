@@ -1,0 +1,68 @@
+'use client';
+import { useState, useEffect } from 'react';
+import { getPendingUsers } from '@/lib/data';
+import type { User } from '@/lib/types';
+import { VerificationCard } from '@/components/admin/VerificationCard';
+import { Logo } from '@/components/Logo';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/auth-provider';
+import { LogOut } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export default function AdminPage() {
+  const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { logout, user } = useAuth();
+  
+  useEffect(() => {
+    async function fetchUsers() {
+      const users = await getPendingUsers();
+      setPendingUsers(users);
+      setIsLoading(false);
+    }
+    fetchUsers();
+  }, []);
+  
+  const handleStatusChange = (userId: string) => {
+    setPendingUsers(prevUsers => prevUsers.filter(u => u.userId !== userId));
+  }
+
+  if (user?.type !== 'admin') {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <p>Access Denied. You are not an admin.</p>
+        </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto max-w-2xl px-4 py-6">
+      <header className="flex items-center justify-between mb-6">
+        <Logo />
+        <Button variant="ghost" size="sm" onClick={logout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
+      </header>
+      <h1 className="text-2xl font-bold mb-4">Pending Verifications</h1>
+
+        {isLoading ? (
+            <div className="space-y-4">
+                <Skeleton className="h-96 w-full" />
+                <Skeleton className="h-96 w-full" />
+            </div>
+        ) : pendingUsers.length > 0 ? (
+        <div className="space-y-4">
+          {pendingUsers.map((user) => (
+            <VerificationCard key={user.userId} user={user} onStatusChange={handleStatusChange} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16 border-dashed border-2 rounded-lg">
+            <h2 className="text-xl font-medium">All Clear!</h2>
+            <p className="text-muted-foreground">There are no pending user verifications.</p>
+        </div>
+      )}
+    </div>
+  );
+}
