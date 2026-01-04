@@ -10,6 +10,9 @@ let firestore: Firestore;
 
 if (!getApps().length) {
   try {
+    // IMPORTANT: This relies on Application Default Credentials (ADC)
+    // It will automatically find credentials in a deployed Google Cloud environment.
+    // For local development, you MUST run `gcloud auth application-default login`
     app = initializeApp();
   } catch (e) {
     console.error('Firebase Admin Initialization Error:', e);
