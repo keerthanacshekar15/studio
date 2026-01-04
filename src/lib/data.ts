@@ -1,36 +1,9 @@
 
 'use server';
 
-import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
-import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
+import { firestore } from '@/lib/firebase-admin';
 import type { User, Post, Notification } from './types';
-
-// This is a SERVER-ONLY file.
-
-let firestore: Firestore;
-
-if (!getApps().length) {
-  try {
-    const serviceAccount = JSON.parse(
-      process.env.GOOGLE_APPLICATION_CREDENTIALS as string
-    );
-    initializeApp({
-      credential: cert(serviceAccount),
-    });
-    firestore = getFirestore();
-  } catch (e) {
-    console.error('Firebase Admin SDK initialization error in data.ts:', e);
-    // Fallback for local dev without service account, if needed.
-    // Ensure you have GOOGLE_APPLICATION_CREDENTIALS set in your env.
-    if (!getApps().length) {
-      initializeApp();
-    }
-    firestore = getFirestore();
-  }
-} else {
-  // If already initialized, get the existing instance
-  firestore = getFirestore();
-}
+import { FieldValue } from 'firebase-admin/firestore';
 
 const USERS_COLLECTION = 'users';
 const POSTS_COLLECTION = 'posts';
@@ -138,7 +111,7 @@ export const updateUserStatus = async (
 };
 
 export const getPosts = async (): Promise<Post[]> => {
-  const postsRef = firestore.collection(POSTS_COLlection);
+  const postsRef = firestore.collection(POSTS_COLLECTION);
   const q = postsRef.orderBy('createdAt', 'desc');
   const querySnapshot = await q.get();
   const now = Date.now();
