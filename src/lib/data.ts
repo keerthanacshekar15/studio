@@ -32,11 +32,13 @@ const initialUsers: User[] = [
   },
 ];
 
+// This variable will hold users in memory on the server.
+let serverSideUsers: User[] = [...initialUsers];
+
 const getStoredUsers = (): User[] => {
   if (typeof window === 'undefined') {
-    // On the server, we can't access localStorage.
-    // Return a copy of the initial users.
-    return [...initialUsers];
+    // On the server, return the server-side in-memory list.
+    return serverSideUsers;
   }
   try {
     const stored = localStorage.getItem('mock-users');
@@ -55,9 +57,8 @@ const getStoredUsers = (): User[] => {
 
 const setStoredUsers = (users: User[]) => {
   if (typeof window === 'undefined') {
-    // If on the server, we can't use localStorage.
-    // The data will be saved on the client side next time it's read.
-    console.warn("Attempted to set users on the server. Data will not be persisted until client-side interaction.");
+    // On the server, update the server-side in-memory list.
+    serverSideUsers = users;
     return;
   }
   try {
@@ -139,8 +140,6 @@ let notifications: Notification[] = [
 
 // --- MOCK API FUNCTIONS ---
 
-// This function is now client-side only and safe to call from server components.
-// It will gracefully return the initial list on the server.
 export const getUsers = async (): Promise<User[]> => {
   const users = getStoredUsers();
   return users.sort((a, b) => b.createdAt - a.createdAt);
@@ -160,11 +159,7 @@ export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | '
     verificationStatus: 'pending',
   };
   
-  // This is the critical part. We add the new user to the list we just fetched.
   const updatedUsers = [...users, newUser];
-  
-  // setStoredUsers will only work on the client, but it's safe to call.
-  // When the admin page loads on the client, getStoredUsers will pull the updated list.
   setStoredUsers(updatedUsers);
   return newUser;
 };
