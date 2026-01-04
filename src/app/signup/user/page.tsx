@@ -41,11 +41,19 @@ export default function UserSignupPage() {
         usn: state.newUser.usn,
         idCardImageURL: state.newUser.idCardImageURL,
       }).then((createdUser) => {
-        toast({
-          title: 'Success',
-          description: 'Signup successful! Your account is pending approval.',
-        });
-        login(createdUser.userId, 'user');
+        if (createdUser.isExisting) {
+           toast({
+            title: 'Account Exists',
+            description: 'An account with this USN already exists. Please log in.',
+          });
+          login(createdUser.userId, 'user');
+        } else {
+          toast({
+            title: 'Success',
+            description: 'Signup successful! Your account is pending approval.',
+          });
+          login(createdUser.userId, 'user');
+        }
       }).catch(err => {
          toast({
           title: 'Error',
@@ -80,10 +88,10 @@ export default function UserSignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Button asChild variant="ghost" className="absolute left-4 top-4">
-          <Link href="/"><ArrowLeft className="mr-2 h-4 w-4" />Back</Link>
-      </Button>
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
+       <Button asChild variant="ghost" className="absolute left-4 top-4">
+          <Link href="/"><ArrowLeft className="mr-2 h-4 w-4" />Back to Home</Link>
+        </Button>
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
             <Logo className="justify-center mb-2" />
@@ -141,6 +149,12 @@ export default function UserSignupPage() {
                {state.errors?.idCardImage && <p className="text-sm text-destructive">{state.errors.idCardImage[0]}</p>}
             </div>
             <SubmitButton pending={isPending} />
+             <p className="text-center text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Link href="/login" className="font-semibold text-primary hover:underline">
+                    Log in
+                </Link>
+             </p>
           </form>
         </CardContent>
       </Card>

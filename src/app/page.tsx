@@ -1,11 +1,12 @@
 
 'use client';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LogIn } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/auth-provider";
+import { Separator } from "@/components/ui/separator";
 
 export default function Home() {
   const { isLoading } = useAuth();
@@ -27,20 +28,38 @@ export default function Home() {
             <CardTitle className="text-2xl font-bold">Welcome to CampusFind</CardTitle>
             <CardDescription>Your college's lost and found hub.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Button asChild className="w-full" size="lg">
-              <Link href="/signup/user">
-                User Signup
-                <ArrowRight className="ml-2 h-5 w-5" />
+          <CardContent className="grid gap-4">
+             <Button asChild className="w-full" size="lg">
+              <Link href="/login">
+                User Login
+                <LogIn className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild className="w-full" variant="secondary" size="lg">
-              <Link href="/signup/admin">
-                Admin Signup
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                    Or
+                    </span>
+                </div>
+            </div>
+             <Button asChild className="w-full" variant="secondary">
+              <Link href="/signup/user">
+                Create a New Account
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
           </CardContent>
+          <Separator className="my-4" />
+          <CardFooter>
+             <Button asChild className="w-full" variant="ghost" size="sm">
+              <Link href="/signup/admin">
+                Admin Access
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </main>

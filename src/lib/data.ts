@@ -32,7 +32,6 @@ const initialUsers: User[] = [
   },
 ];
 
-
 const getStoredUsers = (): User[] => {
     if (typeof window === 'undefined') {
         return initialUsers;
@@ -133,10 +132,22 @@ export const getUserById = async (userId: string): Promise<User | undefined> => 
   return Promise.resolve(user ? {...user} : undefined);
 };
 
+export const getUserByCredentials = async (fullName: string, usn: string): Promise<User | undefined> => {
+    const users = getStoredUsers();
+    const user = users.find(u => u.fullName === fullName && u.usn === usn);
+    return Promise.resolve(user);
+}
+
 export type CreateUserDTO = Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>;
 
-export const createUser = async (userData: CreateUserDTO): Promise<User> => {
+export const createUser = async (userData: CreateUserDTO): Promise<User & { isExisting?: boolean }> => {
   const users = getStoredUsers();
+  const existingUser = users.find(u => u.usn === userData.usn);
+
+  if (existingUser) {
+    return { ...existingUser, isExisting: true };
+  }
+
   const newUser: User = {
     ...userData,
     userId: `user-${Date.now()}`,
@@ -145,7 +156,7 @@ export const createUser = async (userData: CreateUserDTO): Promise<User> => {
   };
   const updatedUsers = [...users, newUser];
   setStoredUsers(updatedUsers);
-  return Promise.resolve({...newUser});
+  return Promise.resolve({...newUser, isExisting: false});
 };
 
 export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected'): Promise<User | undefined> => {

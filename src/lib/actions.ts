@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createUser, type CreateUserDTO } from './data';
+import { createUser, type CreateUserDTO, getUserByCredentials } from './data';
 import type { VerifyIdInput } from '@/ai/flows/admin-assisted-id-verification';
 import { verifyId } from '@/ai/flows/admin-assisted-id-verification';
 
@@ -35,6 +35,7 @@ const UserSignupSchema = z.object({
 export type UserSignupState = {
     message?: string;
     success: boolean;
+    isExistingUser?: boolean;
     newUser?: CreateUserDTO & { userId: string };
     errors?: {
         fullName?: string[];
@@ -83,4 +84,50 @@ export async function runIdVerification(input: VerifyIdInput) {
     console.error(error);
     return { success: false, error: 'AI verification failed.' };
   }
+}
+
+
+// --- New Login Action ---
+const LoginSchema = z.object({
+    fullName: z.string().min(1, 'Full name is required.'),
+    usn: z.string().min(1, 'USN is required.')
+});
+
+export type LoginState = {
+    message: string;
+    success: boolean;
+    user?: (CreateUserDTO & { userId: string, verificationStatus: 'pending' | 'approved' | 'rejected', createdAt: number });
+}
+
+export async function loginUser(prevState: LoginState, formData: FormData): Promise<LoginState> {
+    const validatedFields = LoginSchema.safeParse({
+        fullName: formData.get('fullName'),
+        usn: formData.get('usn'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            message: 'Both fields are required.',
+            success: false,
+        };
+    }
+
+    const { fullName, usn } = validatedFields.data;
+    
+    // This is a server action, it cannot directly access localStorage.
+    // It calls a function that is also marked as server-only.
+    const existingUser = await getUserByCredentials(fullName, usn);
+
+    if (existingUser) {
+        return {
+            message: 'Login successful!',
+            success: true,
+            user: existingUser,
+        };
+    } else {
+        return {
+            message: 'Invalid credentials or user not found.',
+            success: false,
+        };
+    }
 }
