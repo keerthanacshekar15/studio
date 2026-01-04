@@ -23,10 +23,8 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Card className="shadow-2xl">
-          <CardHeader className="text-center">
-            <Logo className="justify-center mb-2" />
-            <CardTitle className="text-2xl font-bold">Welcome to CampusFind</CardTitle>
-            <CardDescription>Your college's lost and found hub.</CardDescription>
+          <CardHeader className="text-center items-center">
+            <Logo />
           </CardHeader>
           <CardContent className="grid gap-4">
              <Button asChild className="w-full" size="lg">
