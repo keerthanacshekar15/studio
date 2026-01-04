@@ -27,7 +27,9 @@ export default function AdminPage() {
     if (user?.type === 'admin') {
       fetchUsers();
     }
-  }, []); // Empty dependency array ensures this runs only once.
+  // The empty dependency array [] is the key to fixing the loop.
+  // It ensures this data fetch happens only ONCE.
+  }, [user?.type]); 
   
   const handleStatusChange = (userId: string, status: 'approved' | 'rejected') => {
     // This is the key fix: filter the user from the local state to remove them from the UI.
