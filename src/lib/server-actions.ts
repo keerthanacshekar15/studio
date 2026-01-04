@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { User, Post, Notification, CreateUserDTO } from './types';
+import type { User, Post, Notification, CreateUserDTO, Reply, Message } from './types';
 import { db } from './mock-db';
 
 // This file is now the single source of truth for server-side data operations.
@@ -79,9 +79,43 @@ export const updateUserStatus = async (
 
 
 export const getPosts = async (): Promise<Post[]> => {
-    // Simply return the posts from the database.
     return db.getPosts();
 };
+
+export const getPostWithReplies = async (postId: string): Promise<{ post: Post; replies: Reply[] } | null> => {
+    const post = await db.getPostById(postId);
+    if (!post) return null;
+    const replies = await db.getRepliesByPostId(postId);
+    return { post, replies };
+}
+
+export const addReplyToServer = async (postId: string, message: string, user: User): Promise<Reply> => {
+    const newReply: Reply = {
+        replyId: `reply-${Date.now()}`,
+        postId,
+        message,
+        repliedBy: user.userId,
+        repliedByName: user.fullName,
+        createdAt: Date.now(),
+    };
+    db.addReply(newReply);
+
+    const post = await db.getPostById(postId);
+    if (post && post.postedBy !== user.userId) {
+        db.addNotification({
+            notificationId: `notif-reply-${Date.now()}`,
+            userId: post.postedBy,
+            type: 'reply',
+            content: `${user.fullName} replied to your post: "${post.title}"`,
+            link: `/app/post/${postId}`,
+            createdAt: Date.now(),
+            readStatus: false,
+        });
+    }
+
+    return newReply;
+};
+
 
 export const createPost = async (
   postData: Omit<Post, 'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'>
@@ -94,10 +128,6 @@ export const createPost = async (
     expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 days
     createdAt: Date.now(),
   };
-  // Ensure itemImageURL is either a valid string or undefined.
-  if (!newPost.itemImageURL || newPost.itemImageURL.trim() === '') {
-    delete newPost.itemImageURL;
-  }
   db.addPost(newPost);
   return newPost;
 };
@@ -105,3 +135,26 @@ export const createPost = async (
 export const getNotifications = async (userId: string): Promise<Notification[]> => {
     return db.getNotifications(userId);
 };
+
+export const getChat = async (postId: string, currentUser: User): Promise<{ chat: any, post: Post } | null> => {
+    const post = await db.getPostById(postId);
+    if (!post) return null;
+
+    const postOwner = await db.getUserById(post.postedBy);
+    if (!postOwner) return null;
+
+    const chat = await db.getOrCreateChat(postId, postOwner, currentUser);
+    return { chat, post };
+}
+
+export const addMessage = async(chatId: string, text: string, sender: User): Promise<Message> => {
+    const message: Message = {
+        messageId: `msg-${Date.now()}`,
+        chatId,
+        text,
+        senderId: sender.userId,
+        senderName: sender.fullName,
+        timestamp: Date.now()
+    }
+    return db.addMessageToChat(chatId, message);
+}

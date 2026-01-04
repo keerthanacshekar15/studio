@@ -1,5 +1,5 @@
 
-import type { User, Post, Notification } from './types';
+import type { User, Post, Notification, Reply, Chat, Message } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
 // In-memory store attached to the global object to persist across hot-reloads in dev.
@@ -8,6 +8,8 @@ const globalForDb = globalThis as unknown as {
   users: User[];
   posts: Post[];
   notifications: Notification[];
+  replies: Reply[];
+  chats: Chat[];
   notifiedUsers: Set<string>;
 };
 
@@ -30,7 +32,7 @@ const initialPosts: Post[] = [
     description: 'I seem to have misplaced my "Cracking the Coding Interview" book somewhere in the library. It has a blue cover and some coffee stains on the corner. Any help would be greatly appreciated!',
     location: 'Central Library, 3rd Floor',
     date: Date.now() - 1 * 24 * 60 * 60 * 1000, // 1 day ago
-    itemImageURL: PlaceHolderImages.find(img => img.id === 'lost-keys')!.imageUrl,
+    itemImageURL: PlaceHolderImages.find(img => img.id === 'lost-wallet')!.imageUrl,
     postedBy: 'user-001-approved',
     postedByName: 'Jane Doe',
     status: 'open',
@@ -55,6 +57,26 @@ const initialPosts: Post[] = [
   },
 ];
 
+const initialReplies: Reply[] = [
+    {
+        replyId: 'reply-001',
+        postId: 'post-001',
+        repliedBy: 'user-002-other',
+        repliedByName: 'John Smith',
+        message: 'I think I saw it near the checkout counter yesterday!',
+        createdAt: Date.now() - 20 * 60 * 60 * 1000, // 20 hours ago
+    },
+    {
+        replyId: 'reply-002',
+        postId: 'post-001',
+        repliedBy: 'user-003-another',
+        repliedByName: 'Emily White',
+        message: 'Is it the 6th edition? I might have picked it up by mistake. Let me check.',
+        createdAt: Date.now() - 18 * 60 * 60 * 1000, // 18 hours ago
+    }
+];
+
+const initialChats: Chat[] = [];
 const initialNotifications: Notification[] = [
     {
         notificationId: 'notif-001',
@@ -70,6 +92,8 @@ const initialNotifications: Notification[] = [
 // Initialize the global store only if it doesn't exist
 const users = globalForDb.users ?? (globalForDb.users = [...initialUsers]);
 const posts = globalForDb.posts ?? (globalForDb.posts = [...initialPosts]);
+const replies = globalForDb.replies ?? (globalForDb.replies = [...initialReplies]);
+const chats = globalForDb.chats ?? (globalForDb.chats = [...initialChats]);
 const notifications = globalForDb.notifications ?? (globalForDb.notifications = [...initialNotifications]);
 const notifiedUsers = globalForDb.notifiedUsers ?? (globalForDb.notifiedUsers = new Set<string>());
 
@@ -81,12 +105,7 @@ export const db = {
   getUserByUsn: async (usn: string): Promise<User | undefined> => users.find(u => u.usn === usn),
   getUserByCredentials: async (fullName: string, usn: string): Promise<User | undefined> => users.find(u => u.fullName.toLowerCase() === fullName.toLowerCase() && u.usn.toLowerCase() === usn.toLowerCase()),
   addUser: (user: User) => {
-    const exists = users.some(u => u.usn === user.usn);
-    if (!exists) {
-      users.push(user);
-    } else {
-      console.log(`User with USN ${user.usn} already exists.`);
-    }
+    users.push(user);
   },
   updateUserStatus: (userId: string, status: 'approved' | 'rejected'): User | undefined => {
     const userIndex = users.findIndex(u => u.userId === userId);
@@ -99,7 +118,50 @@ export const db = {
   
   // Post functions
   getPosts: async (): Promise<Post[]> => [...posts].sort((a, b) => b.createdAt - a.createdAt),
-  addPost: (post: Post) => posts.push(post),
+  getPostById: async (postId: string): Promise<Post | undefined> => posts.find(p => p.postId === postId),
+  addPost: (post: Post) => {
+    if (!post.itemImageURL) {
+      delete post.itemImageURL;
+    }
+    posts.unshift(post);
+  },
+  
+  // Reply functions
+  getRepliesByPostId: async (postId: string): Promise<Reply[]> => [...replies].filter(r => r.postId === postId).sort((a,b) => a.createdAt - b.createdAt),
+  addReply: (reply: Reply) => { 
+    replies.push(reply);
+    const post = posts.find(p => p.postId === reply.postId);
+    if (post) {
+      post.replyCount = (post.replyCount || 0) + 1;
+    }
+  },
+
+  // Chat functions
+  getChatByPostAndUser: async(postId: string, userBId: string): Promise<Chat | undefined> => chats.find(c => c.postId === postId && c.userBId === userBId),
+  getOrCreateChat: async(postId: string, userA: User, userB: User): Promise<Chat> => {
+    let chat = chats.find(c => c.postId === postId && ((c.userAId === userA.userId && c.userBId === userB.userId) || (c.userAId === userB.userId && c.userBId === userA.userId)));
+    if (!chat) {
+        chat = {
+            chatId: `chat-${Date.now()}`,
+            postId: postId,
+            userAId: userA.userId,
+            userAName: userA.fullName,
+            userBId: userB.userId,
+            userBName: userB.fullName,
+            messages: []
+        };
+        chats.push(chat);
+    }
+    return chat;
+  },
+  addMessageToChat: async(chatId: string, message: Message): Promise<Message> => {
+    const chat = chats.find(c => c.chatId === chatId);
+    if (chat) {
+        chat.messages.push(message);
+        return message;
+    }
+    throw new Error("Chat not found");
+  },
 
   // Notification functions
   getNotifications: async(userId: string): Promise<Notification[]> => [...notifications].filter(n => n.userId === userId).sort((a,b) => b.createdAt - a.createdAt),

@@ -1,3 +1,4 @@
+
 export type User = {
   userId: string;
   fullName: string;
@@ -6,6 +7,8 @@ export type User = {
   verificationStatus: 'pending' | 'approved' | 'rejected';
   createdAt: number;
 };
+
+export type CreateUserDTO = Omit<User, 'userId' | 'verificationStatus' | 'createdAt'>;
 
 export type Admin = {
   adminId: string;
@@ -49,11 +52,13 @@ export type Chat = {
 
 export type Message = {
   messageId: string;
+  chatId: string;
   senderId: string;
   senderName: string;
   text: string;
   timestamp: number;
 };
+
 
 export type Notification = {
   notificationId: string;
