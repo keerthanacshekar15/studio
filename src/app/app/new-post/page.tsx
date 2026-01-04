@@ -18,7 +18,6 @@ import { newPostAction, type NewPostState } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 function SubmitButton({ pending }: { pending: boolean }) {
   return (
@@ -61,9 +60,9 @@ export default function NewPostPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        const randomItemImage = PlaceHolderImages.find(img => img.id.startsWith('lost-'))!;
-        setImageUrl(randomItemImage.imageUrl);
+        const dataUri = reader.result as string;
+        setImagePreview(dataUri);
+        setImageUrl(dataUri);
       };
       reader.readAsDataURL(file);
     }
@@ -166,7 +165,7 @@ export default function NewPostPage() {
               >
                 <div className="space-y-1 text-center">
                   {imagePreview ? (
-                    <Image src={imagePreview} alt="Item preview" width={200} height={125} className="mx-auto rounded-md object-cover"/>
+                    <Image src={imagePreview} alt="Item preview" width={200} height={125} className="mx-auto rounded-md object-cover" unoptimized/>
                   ) : (
                     <>
                     <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />

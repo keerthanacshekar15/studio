@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -179,7 +178,7 @@ const PostSchema = z.object({
   location: z.string().min(1, 'Location is required.'),
   date: z.string().min(1, 'Date is required.'),
   postType: z.enum(['lost', 'found']),
-  itemImageURL: z.string().url('A valid image URL is required.').optional().or(z.literal('')),
+  itemImageURL: z.string().optional(),
   postedBy: z.string(),
   postedByName: z.string()
 });
