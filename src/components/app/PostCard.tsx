@@ -22,7 +22,7 @@ export function PostCard({ post }: PostCardProps) {
             alt={post.title}
             fill
             className="object-cover"
-            data-ai-hint={post.postType === 'lost' ? 'keys wallet' : 'bottle'}
+            unoptimized
           />
         </div>
       )}
