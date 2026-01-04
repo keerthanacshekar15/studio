@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -5,7 +6,7 @@ import {
   createUser,
   getUserByCredentials,
   createPost,
-  type CreateUserDTO as DataCreateUserDTO
+  type CreateUserDTO
 } from './data';
 import type { VerifyIdInput } from '@/ai/flows/admin-assisted-id-verification';
 import { verifyId } from '@/ai/flows/admin-assisted-id-verification';
@@ -68,7 +69,7 @@ export async function validateUserSignup(
     };
   }
   
-  const newUserDTO: DataCreateUserDTO = {
+  const newUserDTO: CreateUserDTO = {
     ...validatedFields.data,
   };
 

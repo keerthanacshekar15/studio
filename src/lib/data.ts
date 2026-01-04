@@ -1,9 +1,36 @@
+
 'use server';
 
-import { firestore } from '@/firebase/server-init';
+import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
+import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firestore';
 import type { User, Post, Notification } from './types';
-import { FieldValue } from 'firebase-admin/firestore';
 
+// This is a SERVER-ONLY file.
+
+let firestore: Firestore;
+
+if (!getApps().length) {
+  try {
+    const serviceAccount = JSON.parse(
+      process.env.GOOGLE_APPLICATION_CREDENTIALS as string
+    );
+    initializeApp({
+      credential: cert(serviceAccount),
+    });
+    firestore = getFirestore();
+  } catch (e) {
+    console.error('Firebase Admin SDK initialization error in data.ts:', e);
+    // Fallback for local dev without service account, if needed.
+    // Ensure you have GOOGLE_APPLICATION_CREDENTIALS set in your env.
+    if (!getApps().length) {
+      initializeApp();
+    }
+    firestore = getFirestore();
+  }
+} else {
+  // If already initialized, get the existing instance
+  firestore = getFirestore();
+}
 
 const USERS_COLLECTION = 'users';
 const POSTS_COLLECTION = 'posts';
@@ -74,8 +101,14 @@ export const createUser = async (
     const newUserRef = await usersRef.add(newUserPayload);
     
     const newUserSnap = await newUserRef.get();
-    const newUser = { ...(newUserSnap.data() as Omit<User, 'userId' | 'createdAt'>), userId: newUserRef.id, createdAt: Date.now() };
+    const newUserData = newUserSnap.data();
 
+    // The timestamp will be null until the server commits it, so we use a client-side date for the immediate return
+    const newUser: User = { 
+      ...(newUserData as Omit<User, 'userId' | 'createdAt'>), 
+      userId: newUserRef.id, 
+      createdAt: Date.now() 
+    };
 
     return { user: newUser, isExisting: false };
   } catch(error) {
@@ -105,13 +138,14 @@ export const updateUserStatus = async (
 };
 
 export const getPosts = async (): Promise<Post[]> => {
-  const postsRef = firestore.collection(POSTS_COLLECTION);
+  const postsRef = firestore.collection(POSTS_COLlection);
   const q = postsRef.orderBy('createdAt', 'desc');
   const querySnapshot = await q.get();
+  const now = Date.now();
   const posts = querySnapshot.docs.map(
     doc => ({ ...(doc.data() as Omit<Post, 'postId'>), postId: doc.id })
   );
-  return posts.filter(post => post.expiresAt > Date.now());
+  return posts.filter(post => post.expiresAt > now);
 };
 
 export const createPost = async (
