@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -5,6 +6,7 @@ import {
   createUser,
   getUserByCredentials,
   createPost as createPostServer,
+  updateUser as updateUserServer,
   type CreateUserDTO,
 } from './server-actions';
 import type { Post, User } from './types';
@@ -228,5 +230,51 @@ export async function newPostAction(prevState: NewPostState, formData: FormData)
     } catch(e) {
         console.error("Error creating post:", e);
         return { message: 'Failed to create post.', success: false };
+    }
+}
+
+const UpdateUserSchema = z.object({
+    userId: z.string(),
+    fullName: z.string().min(3, 'Full name must be at least 3 characters.'),
+    usn: z.string().regex(/^4VM/, 'USN must start with "4VM".'),
+});
+
+export type UpdateUserState = {
+    message?: string;
+    success: boolean;
+    updatedUser?: User;
+    errors?: {
+        fullName?: string[];
+        usn?: string[];
+    }
+}
+
+export async function updateUserAction(prevState: UpdateUserState, formData: FormData): Promise<UpdateUserState> {
+    const validatedFields = UpdateUserSchema.safeParse({
+        userId: formData.get('userId'),
+        fullName: formData.get('fullName'),
+        usn: formData.get('usn'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            message: 'Please check your input.',
+            success: false,
+            errors: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+
+    try {
+        const updatedUser = await updateUserServer(
+            validatedFields.data.userId,
+            validatedFields.data.fullName,
+            validatedFields.data.usn
+        );
+        if (!updatedUser) {
+            return { message: 'User not found.', success: false };
+        }
+        return { message: 'Profile updated successfully!', success: true, updatedUser };
+    } catch (e: any) {
+        return { message: e.message || 'Failed to update profile.', success: false };
     }
 }

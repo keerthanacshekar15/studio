@@ -77,6 +77,10 @@ export const updateUserStatus = async (
   return updatedUser;
 };
 
+export const updateUser = async (userId: string, fullName: string, usn: string): Promise<User | undefined> => {
+    return db.updateUser(userId, fullName, usn);
+}
+
 
 export const getPosts = async (): Promise<Post[]> => {
     return db.getPosts();

@@ -3,7 +3,7 @@
 import { getPosts } from '@/lib/data';
 import { PostCard } from '@/components/app/PostCard';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, LogOut } from 'lucide-react';
+import { PlusCircle, LogOut, User } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
@@ -28,6 +28,12 @@ export default function FeedPage() {
       <header className="flex items-center justify-between mb-6">
         <Logo />
         <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm">
+                <Link href="/app/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                </Link>
+            </Button>
             <Button asChild>
                 <Link href="/app/new-post">
                     <PlusCircle className="mr-2 h-4 w-4" />

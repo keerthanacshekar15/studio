@@ -8,7 +8,8 @@ import {
     getPosts as getPosts_server,
     getNotifications as getNotifications_server,
     updateUserStatus as updateUserStatus_server,
-    createPost as createPost_server
+    createPost as createPost_server,
+    updateUser as updateUser_server
 } from './server-actions';
 import type { Post } from './types';
 
@@ -18,3 +19,4 @@ export const getPosts = async () => getPosts_server();
 export const getNotifications = async (userId: string) => getNotifications_server(userId);
 export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected') => updateUserStatus_server(userId, status);
 export const createPost = async (postData: Omit<Post, 'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'>) => createPost_server(postData);
+export const updateUser = async (userId: string, fullName: string, usn: string) => updateUser_server(userId, fullName, usn);

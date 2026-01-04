@@ -116,6 +116,15 @@ export const db = {
     }
     return undefined;
   },
+  updateUser: (userId: string, fullName: string, usn: string): User | undefined => {
+    const userIndex = users.findIndex(u => u.userId === userId);
+    if (userIndex !== -1) {
+      users[userIndex].fullName = fullName;
+      users[userIndex].usn = usn;
+      return users[userIndex];
+    }
+    return undefined;
+  },
   
   // Post functions
   getPosts: async (): Promise<Post[]> => [...posts].sort((a, b) => b.createdAt - a.createdAt),
