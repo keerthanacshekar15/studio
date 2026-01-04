@@ -36,10 +36,12 @@ export default function UserSignupPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (isPending) return; // Don't run effect while form is submitting
+
     if (state.success && state.newUser) {
         toast({
           title: 'Success',
-          description: 'Request for account creation submitted successfully, wait for approval.',
+          description: state.message || 'Request for account creation submitted successfully, wait for approval.',
         });
         login(state.newUser.userId, 'user');
     } else if (!state.success && state.message) {
@@ -49,7 +51,7 @@ export default function UserSignupPage() {
         variant: 'destructive',
       });
     }
-  }, [state, toast, login, router]);
+  }, [state, toast, login, isPending]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,7 +59,8 @@ export default function UserSignupPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
-        const randomIdImage = PlaceHolderImages.find(img => img.id.startsWith('id-card'))!;
+        // Find a random placeholder image, or default to the first one
+        const randomIdImage = PlaceHolderImages.find(img => img.id.startsWith('id-card')) ?? PlaceHolderImages[0];
         setImageUrl(randomIdImage.imageUrl);
       };
       reader.readAsDataURL(file);
@@ -127,7 +130,7 @@ export default function UserSignupPage() {
                 required
               />
                <input type="hidden" name="idCardImage" value={imageUrl} />
-               {state.errors?.idCardImage && <p className="text-sm text-destructive">{state.errors.idCardImage[0]}</p>}
+               {state.errors?.idCardImageURL && <p className="text-sm text-destructive">{state.errors.idCardImageURL[0]}</p>}
             </div>
             <SubmitButton pending={isPending} />
              <p className="text-center text-sm text-muted-foreground">

@@ -3,7 +3,6 @@
 
 import { firestore } from '@/lib/firebase-admin';
 import type { User, Post, Notification } from './types';
-import { FieldValue } from 'firebase-admin/firestore';
 
 const USERS_COLLECTION = 'users';
 const POSTS_COLLECTION = 'posts';
@@ -66,21 +65,16 @@ export const createUser = async (
   
   const newUserPayload = {
       ...userData,
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: Date.now(),
       verificationStatus: 'pending' as const,
   };
 
   try {
     const newUserRef = await usersRef.add(newUserPayload);
     
-    const newUserSnap = await newUserRef.get();
-    const newUserData = newUserSnap.data();
-
-    // The timestamp will be null until the server commits it, so we use a client-side date for the immediate return
     const newUser: User = { 
-      ...(newUserData as Omit<User, 'userId' | 'createdAt'>), 
-      userId: newUserRef.id, 
-      createdAt: Date.now() 
+      ...newUserPayload, 
+      userId: newUserRef.id
     };
 
     return { user: newUser, isExisting: false };
@@ -101,7 +95,7 @@ export const updateUserStatus = async (
   await notificationRef.add({
       type: status === 'approved' ? 'approval' : 'rejection',
       content: `Your account has been ${status}.`,
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: Date.now(),
       readStatus: false,
       userId: userId,
       link: status === 'approved' ? '/app/feed' : '/'

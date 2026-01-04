@@ -70,7 +70,9 @@ export async function validateUserSignup(
   }
   
   const newUserDTO: CreateUserDTO = {
-    ...validatedFields.data,
+    fullName: validatedFields.data.fullName,
+    usn: validatedFields.data.usn,
+    idCardImageURL: validatedFields.data.idCardImageURL,
   };
 
   try {
