@@ -1,7 +1,8 @@
+
 'use server';
 
 import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
-import { getFirestore, Firestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import type { User, Post, Notification } from './types';
 
 // Robust singleton pattern for Firebase Admin SDK
@@ -10,19 +11,21 @@ let firestore: Firestore;
 
 if (!getApps().length) {
   try {
-    // IMPORTANT: This relies on Application Default Credentials (ADC)
-    // It will automatically find credentials in a deployed Google Cloud environment.
-    // For local development, you MUST run `gcloud auth application-default login`
+    // This is the most robust way to initialize in different environments
     app = initializeApp();
-  } catch (e) {
-    console.error('Firebase Admin Initialization Error:', e);
-    throw new Error(
-      'Failed to initialize Firebase Admin SDK. Check server logs for details.'
-    );
+  } catch (e: any) {
+    if (e.code === 'app/no-app') {
+       // This can happen in some Next.js hot-reload scenarios, so we create a new app.
+       app = initializeApp();
+    } else {
+        console.error('Firebase Admin Initialization Error:', e);
+        throw new Error('Failed to initialize Firebase Admin SDK. Check server logs for details.');
+    }
   }
 } else {
   app = getApps()[0];
 }
+
 
 firestore = getFirestore(app);
 
