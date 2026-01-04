@@ -9,7 +9,6 @@ import { PostCard } from '@/components/app/PostCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { Send, ArrowLeft, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
@@ -108,10 +107,6 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
                         <div className="space-y-4">
                             {replies.map(reply => (
                                 <div key={reply.replyId} className="flex gap-3">
-                                    <Avatar>
-                                        <AvatarImage src={`https://i.pravatar.cc/150?u=${reply.repliedBy}`} />
-                                        <AvatarFallback>{reply.repliedByName.charAt(0)}</AvatarFallback>
-                                    </Avatar>
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 text-sm">
                                             <span className="font-semibold">{reply.repliedByName}</span>

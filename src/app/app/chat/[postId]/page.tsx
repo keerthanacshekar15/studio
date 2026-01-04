@@ -8,7 +8,6 @@ import { getChat, addMessage } from '@/lib/server-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Send } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -98,10 +97,6 @@ export default function ChatPage({ params }: { params: { postId: string } }) {
         <Button asChild variant="ghost" size="icon">
           <Link href={`/app/post/${post.postId}`}><ArrowLeft /></Link>
         </Button>
-        <Avatar>
-          <AvatarImage src={`https://i.pravatar.cc/150?u=${otherUser.id}`} />
-          <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
-        </Avatar>
         <div className="flex-1">
           <p className="font-semibold">{otherUser.name}</p>
           <p className="text-xs text-muted-foreground">Regarding: {post.title}</p>
@@ -114,12 +109,6 @@ export default function ChatPage({ params }: { params: { postId: string } }) {
             key={message.messageId}
             className={cn('flex items-end gap-2', message.senderId === user.userId ? 'justify-end' : 'justify-start')}
           >
-            {message.senderId !== user.userId && (
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={`https://i.pravatar.cc/150?u=${message.senderId}`} />
-                <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
-              </Avatar>
-            )}
             <div
               className={cn(
                 'max-w-xs md:max-w-md rounded-lg px-3 py-2 text-sm',
@@ -128,6 +117,7 @@ export default function ChatPage({ params }: { params: { postId: string } }) {
                   : 'bg-muted'
               )}
             >
+              <p className="font-semibold text-xs mb-1">{message.senderName}</p>
               <p>{message.text}</p>
             </div>
           </div>
