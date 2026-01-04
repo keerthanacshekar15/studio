@@ -21,7 +21,6 @@ export const getUserByCredentials = async (
 ): Promise<User | undefined> => {
   // Simulate finding a user by their credentials, allowing login only for existing users.
   const users = await db.getUsers();
-  // Note: For login, we check against the full name which might not be unique.
   // In a real app, this would be a unique email or username.
   const matchedUser = users.find(u => u.fullName === fullName && u.usn === usn);
   return matchedUser;
@@ -38,7 +37,7 @@ export const createUser = async (
 
   const newUser: User = {
     ...userData,
-    userId: `user-${Date.now()}`,
+    userId: `user-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     verificationStatus: 'pending',
     createdAt: Date.now(),
   };

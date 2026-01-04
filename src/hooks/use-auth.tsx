@@ -1,18 +1,20 @@
+
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { User } from '@/lib/types';
-import { getUserById } from '@/lib/data';
+import { getUserById } from '@/lib/server-actions';
 import { useUser as useFirebaseUser } from '@/firebase';
 import { signInAnonymously, signOut } from 'firebase/auth';
 import { useAuth as useFirebaseAuth } from '@/firebase';
 
+type AuthUser = (User & { type: 'user' }) | { adminId: string; type: 'admin' };
 
 const AUTH_STORAGE_KEY = 'campusFindUser';
 
 type AuthContextType = {
-  user: (User & { type: 'user' }) | { adminId: string; type: 'admin' } | null;
+  user: AuthUser | null;
   login: (id: string, type: 'user' | 'admin') => void;
   logout: () => void;
   isLoading: boolean;
@@ -28,10 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const firebaseAuth = useFirebaseAuth();
   const { user: firebaseUser, isUserLoading: isFirebaseUserLoading } = useFirebaseUser();
 
+  const logout = useCallback(async () => {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    setUser(null);
+    await signOut(firebaseAuth);
+    router.push('/');
+  }, [firebaseAuth, router]);
+
 
   useEffect(() => {
     if (!firebaseUser && !isFirebaseUserLoading) {
-      signInAnonymously(firebaseAuth);
+      signInAnonymously(firebaseAuth).catch(console.error);
     }
   }, [firebaseUser, isFirebaseUserLoading, firebaseAuth]);
 
@@ -50,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (fetchedUser) {
               setUser({ ...fetchedUser, type: 'user' });
             } else {
-              await logout();
+              // User not found in DB, clear storage
+              localStorage.removeItem(AUTH_STORAGE_KEY);
+              setUser(null);
             }
           }
         }
@@ -62,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     loadUserFromStorage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -70,63 +80,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const isAuthPage = pathname.startsWith('/signup') || pathname === '/' || pathname.startsWith('/login');
     const isAppPage = pathname.startsWith('/app') || pathname === '/pending';
+    const isPendingPage = pathname === '/pending';
+    const isAdminPage = pathname === '/app/admin';
 
-    if (!user && isAppPage) {
+    if (!user) {
+      // If not logged in and trying to access app pages, redirect to home
+      if (isAppPage) {
         router.replace('/');
-        return;
+      }
+      return;
     }
 
-    if (user) {
-        if (user.type === 'admin') {
-            if (pathname !== '/app/admin') {
-                router.replace('/app/admin');
-            }
-        } else if (user.type === 'user') {
-            if (user.verificationStatus === 'pending' && pathname !== '/pending') {
-                router.replace('/pending');
-            } else if (user.verificationStatus === 'approved' && (isAuthPage || pathname === '/pending')) {
-                router.replace('/app/feed');
-            } else if (user.verificationStatus === 'rejected' && isAppPage) {
-                // maybe a page for rejected users? for now, log them out.
+    // --- Routing for logged-in users ---
+    if (user.type === 'admin') {
+        if (!isAdminPage) {
+            router.replace('/app/admin');
+        }
+    } else if (user.type === 'user') {
+        switch (user.verificationStatus) {
+            case 'approved':
+                // Approved users should not be on auth or pending pages
+                if (isAuthPage || isPendingPage) {
+                    router.replace('/app/feed');
+                }
+                break;
+            case 'pending':
+                // Pending users should only be on the pending page
+                if (!isPendingPage) {
+                    router.replace('/pending');
+                }
+                break;
+            case 'rejected':
+                // Log out rejected users
                 logout();
-            }
+                alert("Your account verification was rejected. Please contact support if you believe this is an error.");
+                break;
         }
     }
+  }, [user, isLoading, isFirebaseUserLoading, pathname, router, logout]);
 
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isLoading, isFirebaseUserLoading, pathname, router]);
-
-
-  const login = (id: string, type: 'user' | 'admin') => {
+  const login = useCallback((id: string, type: 'user' | 'admin') => {
     setIsLoading(true);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ id, type }));
     if (type === 'admin') {
       const adminUser = { adminId: id, type: 'admin' };
       setUser(adminUser);
-      router.push('/app/admin');
+      // Let useEffect handle routing
       setIsLoading(false);
     } else {
        getUserById(id).then(fetchedUser => {
         if(fetchedUser){
             setUser({ ...fetchedUser, type: 'user' });
-            if (fetchedUser.verificationStatus === 'pending') {
-                router.push('/pending');
-            } else {
-                router.push('/app/feed');
-            }
+        } else {
+            // User couldn't be found, clear login
+            localStorage.removeItem(AUTH_STORAGE_KEY);
         }
+        // Let useEffect handle routing
         setIsLoading(false);
+       }).catch(() => {
+           localStorage.removeItem(AUTH_STORAGE_KEY);
+           setIsLoading(false);
        });
     }
-  };
-
-  const logout = async () => {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    setUser(null);
-    await signOut(firebaseAuth);
-    router.push('/');
-  };
+  }, []);
 
   const value = { user, login, logout, isLoading: isLoading || isFirebaseUserLoading };
 

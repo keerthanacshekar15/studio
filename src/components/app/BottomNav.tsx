@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -5,24 +6,25 @@ import { LayoutGrid, MessageSquare, Bell, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 
-const navItems = [
-  { href: '/app/feed', icon: LayoutGrid, label: 'Feed' },
-  { href: '/app/messages', icon: MessageSquare, label: 'Messages' },
-  { href: '/app/notifications', icon: Bell, label: 'Notifications' },
-  { href: '/app/admin', icon: Shield, label: 'Admin', adminOnly: true },
+const allNavItems = [
+  { href: '/app/feed', icon: LayoutGrid, label: 'Feed', for: 'user' },
+  { href: '/app/messages', icon: MessageSquare, label: 'Messages', for: 'user' },
+  { href: '/app/notifications', icon: Bell, label: 'Notifications', for: 'user' },
+  { href: '/app/admin', icon: Shield, label: 'Admin', for: 'admin' },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const isAdmin = user?.type === 'admin';
+
+  if (!user) return null;
+
+  const navItems = allNavItems.filter(item => item.for === user.type);
 
   return (
     <footer className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm md:hidden">
       <nav className="flex h-16 items-center justify-around">
         {navItems.map((item) => {
-          if (item.adminOnly && !isAdmin) return null;
-          
           const isActive = pathname.startsWith(item.href);
           return (
             <Link

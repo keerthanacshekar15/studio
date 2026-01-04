@@ -3,7 +3,7 @@ import type { User, Post, Notification } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
 // In-memory store
-let users: User[] = [
+const initialUsers: User[] = [
     {
         userId: 'user-001-approved',
         fullName: 'Jane Doe (Approved)',
@@ -29,6 +29,8 @@ let users: User[] = [
         createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000, // 3 days ago
     }
 ];
+let users: User[] = [...initialUsers];
+
 let posts: Post[] = [
   {
     postId: 'post-001',
@@ -86,6 +88,8 @@ export const db = {
     const exists = users.some(u => u.usn === user.usn);
     if (!exists) {
       users.push(user);
+    } else {
+      console.log(`User with USN ${user.usn} already exists.`);
     }
   },
   updateUserStatus: (userId: string, status: 'approved' | 'rejected'): User | undefined => {
