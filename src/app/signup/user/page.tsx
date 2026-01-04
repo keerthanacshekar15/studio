@@ -35,8 +35,8 @@ export default function UserSignupPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isPending) return;
-
+    // This effect should run when the server action is done, not while it's pending.
+    // We check the state object for the result of the action.
     if (state.success && state.newUser) {
         toast({
           title: 'Success',
@@ -45,13 +45,16 @@ export default function UserSignupPage() {
         login(state.newUser.userId, 'user');
         router.push('/pending');
     } else if (!state.success && state.message) {
-      toast({
-        title: 'Error',
-        description: state.message,
-        variant: 'destructive',
-      });
+      // Avoid showing an error on initial page load
+      if (state.message !== '') {
+          toast({
+            title: 'Error',
+            description: state.message,
+            variant: 'destructive',
+          });
+      }
     }
-  }, [state, isPending, login, router]);
+  }, [state]); // Depend on the state object which changes when the action completes.
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
