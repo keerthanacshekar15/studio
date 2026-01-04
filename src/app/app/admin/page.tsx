@@ -11,20 +11,30 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminPage() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { logout, user } = useAuth();
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const { logout, user, isLoading: isAuthLoading } = useAuth();
   
   useEffect(() => {
-    async function fetchUsers() {
-      const users = await getPendingUsers();
-      setPendingUsers(users);
-      setIsLoading(false);
+    if (user?.type === 'admin') {
+        async function fetchUsers() {
+          const users = await getPendingUsers();
+          setPendingUsers(users);
+          setIsDataLoading(false);
+        }
+        fetchUsers();
     }
-    fetchUsers();
-  }, []);
+  }, [user]);
   
   const handleStatusChange = (userId: string) => {
     setPendingUsers(prevUsers => prevUsers.filter(u => u.userId !== userId));
+  }
+
+  if (isAuthLoading) {
+      return (
+          <div className="flex h-screen items-center justify-center">
+              <p>Loading admin dashboard...</p>
+          </div>
+      )
   }
 
   if (user?.type !== 'admin') {
@@ -46,7 +56,7 @@ export default function AdminPage() {
       </header>
       <h1 className="text-2xl font-bold mb-4">Pending Verifications</h1>
 
-        {isLoading ? (
+        {isDataLoading ? (
             <div className="space-y-4">
                 <Skeleton className="h-96 w-full" />
                 <Skeleton className="h-96 w-full" />

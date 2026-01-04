@@ -36,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (fetchedUser) {
               setUser({ ...fetchedUser, type: 'user' });
             } else {
+              // If user is not found, treat as logged out
               logout();
             }
           }
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     loadUserFromStorage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -57,12 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isAppPage = pathname.startsWith('/app') || pathname.startsWith('/pending');
 
     if (user) {
-      if (user.type === 'user' && user.verificationStatus === 'pending' && pathname !== '/pending') {
-        router.replace('/pending');
-      } else if (user.type === 'user' && user.verificationStatus === 'approved' && (isAuthPage || pathname === '/pending')) {
-        router.replace('/app/feed');
-      } else if (user.type === 'admin' && isAuthPage) {
-        router.replace('/app/admin');
+      if (user.type === 'user') {
+        if (user.verificationStatus === 'pending' && pathname !== '/pending') {
+          router.replace('/pending');
+        } else if (user.verificationStatus === 'approved' && (isAuthPage || pathname === '/pending')) {
+          router.replace('/app/feed');
+        }
+      } else if (user.type === 'admin') {
+        if (isAuthPage || pathname !== '/app/admin' && pathname.startsWith('/app')) {
+           if(pathname !== '/app/admin') router.replace('/app/admin');
+        }
       }
     } else {
       if (isAppPage) {
@@ -73,11 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const login = (id: string, type: 'user' | 'admin') => {
+    setIsLoading(true);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ id, type }));
     if (type === 'admin') {
       const adminUser = { adminId: id, type: 'admin' };
       setUser(adminUser);
       router.push('/app/admin');
+      setIsLoading(false);
     } else {
        getUserById(id).then(fetchedUser => {
         if(fetchedUser){
@@ -88,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 router.push('/app/feed');
             }
         }
+        setIsLoading(false);
        });
     }
   };
