@@ -1,0 +1,221 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Core Philosophy: This ruleset enforces a multi-tiered security model tailored for the CampusFind application.
+     * It combines strict user ownership for personal data, role-based access for administrators, a public-read/owner-write
+     * model for community content like posts, and a shared-access model for collaborative features like chats.
+     *
+     * Data Structure: Data is segregated into top-level collections based on its security context.
+     *   - `/users/{userId}`: Contains user-specific data and subcollections like notifications, secured by user ID.
+     *   - `/admins/{adminId}`: A lookup collection to define administrator roles.
+     *   - `/idVerifications`: A collection for pending user verifications, writable by users but manageable only by admins.
+     *   - `/posts`: A public collection for lost and found items.
+     *   - `/chats`: A collection for private conversations between specific users.
+     *
+     * Key Security Decisions:
+     *   - Admin Access: A user is considered an admin if a document with their UID exists in the `/admins` collection. This provides a clear, centralized way to manage roles.
+     *   - User Privacy: Listing users is disabled to protect privacy. Users can only access their own user document.
+     *   - Content Creation: Only users with an 'approved' verification status can create public content (posts, replies). This prevents unverified accounts from interacting with the community.
+     *   - Default Deny: All paths are closed by default. Access is granted explicitly on a per-collection basis.
+     *
+     * Denormalization for Authorization: To ensure fast and simple authorization checks, ownership and membership data are
+     * denormalized. For example, `posts` documents contain a `postedBy` field, and `chats` documents contain `userAId` and
+     * `userBId` fields. This avoids costly and slow `get()` calls in security rules.
+     *
+     * Structural Segregation: Sensitive verification data (`/idVerifications`) is stored separately from public user profiles
+     * (`/users`) and community content (`/posts`), allowing for distinct and robust security rules for each data type.
+     */
+
+    // ----------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------
+
+    /**
+     * @description Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the document exists and the user is the owner. For update/delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user is an administrator by checking for their UID in the /admins collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    /**
+     * @description Checks if the authenticated user has an 'approved' status. Requires one document read.
+     */
+    function isApprovedUser() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verificationStatus == 'approved';
+    }
+
+    /**
+     * @description Checks if the authenticated user is a participant in a given chat document.
+     */
+    function isChatParticipant(chatDoc) {
+      return isSignedIn() && (request.auth.uid == chatDoc.userAId || request.auth.uid == chatDoc.userBId);
+    }
+    
+    /**
+     * @description Checks if the authenticated user is a participant in the parent chat. Requires one document read.
+     */
+    function isParentChatParticipant(chatId) {
+      let chatDoc = get(/databases/$(database)/documents/chats/$(chatId)).data;
+      return isChatParticipant(chatDoc);
+    }
+
+    // ----------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------
+
+    /**
+     * @description Admin documents are used for role verification. This collection is not directly accessible by any client.
+     * @path /admins/{adminId}
+     * @allow (none) No client operation is permitted.
+     * @deny (any) All clients are denied from reading or writing to this collection.
+     * @principle Implements a read-only role lookup system. Admin documents should be managed server-side or via the Firebase console.
+     */
+    match /admins/{adminId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description User documents contain public and private user information.
+     * @path /users/{userId}
+     * @allow (create) A new user can create their own user document. `auth.uid` must match `{userId}`.
+     * @allow (get, update) An authenticated user can read or update their own document.
+     * @deny (list) Listing all users is forbidden to protect user privacy.
+     * @deny (get) A user cannot read another user's document.
+     * @principle Restricts access to a user's own data tree (Ownership pattern).
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description ID verifications are submitted by users but can only be managed by admins.
+     * @path /idVerifications/{verificationId}
+     * @allow (create) An authenticated user can create their own verification request.
+     * @allow (get, list, update, delete) An admin can read, list, update (e.g., approve/reject), and delete verification requests.
+     * @deny (get, update, delete) A regular user cannot read, update, or delete any verification, including their own.
+     * @principle Segregates sensitive data and grants privileged access based on an admin role.
+     */
+    match /idVerifications/{verificationId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Posts are public but can only be written by their original author.
+     * @path /posts/{postId}
+     * @allow (get, list) Any user, including unauthenticated ones, can read and list posts.
+     * @allow (create) An authenticated and approved user can create a new post.
+     * @allow (update, delete) The user who originally created the post can update or delete it.
+     * @deny (update, delete) A user cannot modify or delete a post they did not create.
+     * @principle Implements a public-read, owner-only-write model for community content.
+     */
+    match /posts/{postId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isApprovedUser() && request.resource.data.postedBy == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.postedBy) && request.resource.data.postedBy == resource.data.postedBy;
+      allow delete: if isExistingOwner(resource.data.postedBy);
+    }
+
+    /**
+     * @description Replies are subdocuments of posts; they are public but only writable by their author.
+     * @path /posts/{postId}/replies/{replyId}
+     * @allow (get, list) Any user can read replies on a post.
+     * @allow (create) An authenticated and approved user can add a reply.
+     * @allow (update, delete) The author of a specific reply can update or delete it.
+     * @deny (update, delete) A user cannot modify another user's reply.
+     * @principle Enforces document ownership for writes on a nested subcollection.
+     */
+    match /posts/{postId}/replies/{replyId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isApprovedUser() && request.resource.data.repliedBy == request.auth.uid && request.resource.data.postId == postId;
+      allow update: if isExistingOwner(resource.data.repliedBy) && request.resource.data.repliedBy == resource.data.repliedBy;
+      allow delete: if isExistingOwner(resource.data.repliedBy);
+    }
+
+    /**
+     * @description Chat documents define a private conversation between two users.
+     * @path /chats/{chatId}
+     * @allow (get, update, delete) Only the two users participating in the chat can access or modify it.
+     * @allow (create) A signed-in user can initiate a chat where they are one of the participants.
+     * @deny (list) A user cannot list all chats in the database.
+     * @deny (get) A user who is not a participant cannot read the chat document.
+     * @principle Secures data for a closed set of collaborators using denormalized participant IDs.
+     */
+    match /chats/{chatId} {
+      allow get: if isChatParticipant(resource.data);
+      allow list: if false;
+      allow create: if isSignedIn() && (request.resource.data.userAId == request.auth.uid || request.resource.data.userBId == request.auth.uid);
+      allow update: if resource != null && isChatParticipant(resource.data);
+      allow delete: if resource != null && isChatParticipant(resource.data);
+    }
+
+    /**
+     * @description Messages are part of a chat and inherit their access control from the parent chat document.
+     * @path /chats/{chatId}/messages/{messageId}
+     * @allow (get, list) A user can only read messages if they are a participant in the parent chat.
+     * @allow (create) A chat participant can send a new message.
+     * @allow (update, delete) Only the original sender of a message can modify or delete it.
+     * @deny (get, list) A user cannot read messages in a chat they are not part of.
+     * @principle Uses a `get()` call to a parent document to enforce inherited access control.
+     */
+    match /chats/{chatId}/messages/{messageId} {
+      allow get: if isParentChatParticipant(chatId);
+      allow list: if isParentChatParticipant(chatId);
+      allow create: if isParentChatParticipant(chatId) && request.resource.data.senderId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.senderId) && isParentChatParticipant(chatId);
+      allow delete: if isExistingOwner(resource.data.senderId) && isParentChatParticipant(chatId);
+    }
+
+    /**
+     * @description Notifications are private to a specific user.
+     * @path /users/{userId}/notifications/{notificationId}
+     * @allow (all) A user has full control over the notifications in their own data tree.
+     * @deny (all) A user cannot access, create, or modify notifications belonging to another user.
+     * @principle Enforces strict ownership based on the document path.
+     */
+    match /users/{userId}/notifications/{notificationId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
