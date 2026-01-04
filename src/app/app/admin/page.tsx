@@ -19,7 +19,8 @@ export default function AdminPage() {
     if (user?.type === 'admin') {
         async function fetchUsers() {
           const allUsers = await getUsers();
-          setUsers(allUsers);
+          const pendingUsers = allUsers.filter(u => u.verificationStatus === 'pending');
+          setUsers(pendingUsers);
           setIsDataLoading(false);
         }
         fetchUsers();
