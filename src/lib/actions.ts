@@ -89,9 +89,10 @@ export async function validateUserSignup(
       success: true,
       newUser: { ...newUser, userId: createdUser.userId },
     };
-  } catch (err) {
+  } catch (err: any) {
+    console.error("Error in validateUserSignup:", err);
     return {
-      message: 'An unexpected error occurred during user creation.',
+      message: err.message || 'An unexpected error occurred during user creation.',
       success: false,
     };
   }

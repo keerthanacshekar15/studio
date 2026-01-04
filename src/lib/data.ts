@@ -77,20 +77,27 @@ export const createUser = async (
       isExisting: true,
     };
   }
-
-  const usersCollection = collection(firestore, USERS_COLLECTION);
-  const newUserRef = doc(usersCollection); // Correctly get a new doc ref with an auto-id
-
-  const newUser: User = {
-    ...userData,
-    userId: newUserRef.id,
-    createdAt: Date.now(),
-    verificationStatus: 'pending',
+  
+  const newUserPayload = {
+      ...userData,
+      createdAt: Date.now(),
+      verificationStatus: 'pending' as const,
   };
 
-  await setDoc(newUserRef, newUser);
+  try {
+    const usersCollection = collection(firestore, USERS_COLLECTION);
+    const newUserRef = await addDoc(usersCollection, newUserPayload);
 
-  return { user: newUser, isExisting: false };
+    const newUser: User = {
+        ...newUserPayload,
+        userId: newUserRef.id,
+    };
+
+    return { user: newUser, isExisting: false };
+  } catch(error) {
+    console.error("Error creating user in Firestore:", error);
+    throw new Error("Could not create user document in the database.");
+  }
 };
 
 export const updateUserStatus = async (
