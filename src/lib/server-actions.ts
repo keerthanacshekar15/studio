@@ -20,10 +20,8 @@ export const getUserByCredentials = async (
   usn: string
 ): Promise<User | undefined> => {
   // Simulate finding a user by their credentials, allowing login only for existing users.
-  // The credentials MUST be an exact match.
   const users = await db.getUsers();
-  const matchedUser = users.find(u => u.fullName.toLowerCase() === fullName.toLowerCase() && u.usn.toLowerCase() === usn.toLowerCase());
-  return matchedUser;
+  return users.find(u => u.fullName.toLowerCase() === fullName.toLowerCase() && u.usn.toLowerCase() === usn.toLowerCase());
 };
 
 export const createUser = async (
@@ -89,7 +87,7 @@ export const getPosts = async (): Promise<Post[]> => {
 
 export const createPost = async (
   postData: Omit<Post, 'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'>
-) => {
+): Promise<Post> => {
   const newPost: Post = {
     ...postData,
     postId: `post-${Date.now()}`,
