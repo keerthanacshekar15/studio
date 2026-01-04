@@ -94,6 +94,10 @@ export const createPost = async (
     expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 days
     createdAt: Date.now(),
   };
+  // Ensure itemImageURL is either a valid string or undefined.
+  if (!newPost.itemImageURL || newPost.itemImageURL.trim() === '') {
+    delete newPost.itemImageURL;
+  }
   db.addPost(newPost);
   return newPost;
 };
