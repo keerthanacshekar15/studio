@@ -4,6 +4,9 @@
 import type { User, Post, Notification, CreateUserDTO } from './types';
 import { db } from './mock-db';
 
+// This file is now the single source of truth for server-side data operations.
+// It uses the mock-db to simulate a database.
+
 export const getUsers = async (): Promise<User[]> => {
   return db.getUsers();
 };
@@ -16,7 +19,12 @@ export const getUserByCredentials = async (
   fullName: string,
   usn: string
 ): Promise<User | undefined> => {
-  return db.getUserByCredentials(fullName, usn);
+  // Simulate finding a user by their credentials, allowing login only for existing users.
+  const users = await db.getUsers();
+  // Note: For login, we check against the full name which might not be unique.
+  // In a real app, this would be a unique email or username.
+  const matchedUser = users.find(u => u.fullName === fullName && u.usn === usn);
+  return matchedUser;
 };
 
 export const createUser = async (
@@ -24,6 +32,7 @@ export const createUser = async (
 ): Promise<{ user: User; isExisting: boolean }> => {
   const existingUser = await db.getUserByUsn(userData.usn);
   if (existingUser) {
+    // If the user exists, return them without creating a new one.
     return { user: existingUser, isExisting: true };
   }
 
@@ -38,12 +47,41 @@ export const createUser = async (
   return { user: newUser, isExisting: false };
 };
 
+
 export const updateUserStatus = async (
   userId: string,
   status: 'approved' | 'rejected'
 ): Promise<User | undefined> => {
-  return db.updateUserStatus(userId, status);
+  const updatedUser = db.updateUserStatus(userId, status);
+  
+  if (updatedUser && !db.hasNotified(userId)) {
+      if (status === 'approved') {
+          db.addNotification({
+              notificationId: `notif-approval-${Date.now()}`,
+              userId: userId,
+              type: 'approval',
+              content: 'Congratulations! Your account has been approved by an administrator.',
+              link: '/app/feed',
+              createdAt: Date.now(),
+              readStatus: false,
+          });
+      } else if (status === 'rejected') {
+          db.addNotification({
+              notificationId: `notif-rejection-${Date.now()}`,
+              userId: userId,
+              type: 'rejection',
+              content: 'We are sorry, your account verification has been rejected.',
+              link: '/',
+              createdAt: Date.now(),
+              readStatus: false,
+          });
+      }
+      db.markAsNotified(userId);
+  }
+
+  return updatedUser;
 };
+
 
 export const getPosts = async (): Promise<Post[]> => {
   return db.getPosts();
@@ -65,32 +103,5 @@ export const createPost = async (
 };
 
 export const getNotifications = async (userId: string): Promise<Notification[]> => {
-    // Check for user approval/rejection and create notifications
-    const user = await db.getUserById(userId);
-    if (user && !db.hasNotified(userId)) {
-        if (user.verificationStatus === 'approved') {
-            db.addNotification({
-                notificationId: `notif-${Date.now()}`,
-                userId: userId,
-                type: 'approval',
-                content: 'Congratulations! Your account has been approved by an administrator.',
-                link: '/app/feed',
-                createdAt: Date.now(),
-                readStatus: false,
-            });
-            db.markAsNotified(userId);
-        } else if (user.verificationStatus === 'rejected') {
-            db.addNotification({
-                notificationId: `notif-${Date.now()}`,
-                userId: userId,
-                type: 'rejection',
-                content: 'We are sorry, your account verification has been rejected.',
-                link: '/',
-                createdAt: Date.now(),
-                readStatus: false,
-            });
-            db.markAsNotified(userId);
-        }
-    }
     return db.getNotifications(userId);
 };
