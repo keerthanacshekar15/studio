@@ -96,15 +96,16 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
     const { user, isLoading: isAuthLoading } = useAuth();
     const [data, setData] = useState<{ post: Post; replies: Reply[] } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const { postId } = params;
 
     useEffect(() => {
-        if (params.postId) {
-            getPostWithReplies(params.postId).then(result => {
+        if (postId) {
+            getPostWithReplies(postId).then(result => {
                 setData(result);
                 setIsLoading(false);
             });
         }
-    }, [params.postId]);
+    }, [postId]);
     
     const handleReplyAdded = (newReply: Reply) => {
         setData(prevData => {
