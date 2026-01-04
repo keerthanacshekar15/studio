@@ -23,8 +23,8 @@ export default function RootLayout({
       <body className="font-body antialiased h-full bg-background">
         <Providers>
           {children}
-          <Toaster />
         </Providers>
+        <Toaster />
       </body>
     </html>
   );
