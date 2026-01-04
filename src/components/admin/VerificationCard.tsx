@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -95,6 +96,7 @@ export function VerificationCard({ user, onStatusChange }: VerificationCardProps
             fill
             className="object-contain"
             data-ai-hint="id card"
+            unoptimized
           />
         </div>
         {aiResult && (

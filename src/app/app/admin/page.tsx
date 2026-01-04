@@ -15,27 +15,22 @@ export default function AdminPage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const { logout, user, isLoading } = useAuth();
   
+  const fetchUsers = async () => {
+    setIsDataLoading(true);
+    const allUsers = await getUsers();
+    setUsers(allUsers);
+    setIsDataLoading(false);
+  }
+
   useEffect(() => {
     if (user?.type === 'admin') {
-        async function fetchUsers() {
-          const allUsers = await getUsers();
-          const pendingUsers = allUsers.filter(u => u.verificationStatus === 'pending');
-          setUsers(pendingUsers);
-          setIsDataLoading(false);
-        }
-        fetchUsers();
+      fetchUsers();
     }
   }, [user]);
   
-  const handleStatusChange = (userId: string) => {
-    setUsers(prevUsers => {
-        const newUsers = [...prevUsers];
-        const userIndex = newUsers.findIndex(u => u.userId === userId);
-        if(userIndex > -1) {
-            newUsers.splice(userIndex, 1);
-        }
-        return newUsers;
-    });
+  const handleStatusChange = (userId: string, status: 'approved' | 'rejected') => {
+    // Re-fetch users to get the latest status for everyone
+    fetchUsers();
   }
 
   if (isLoading) {
@@ -78,8 +73,8 @@ export default function AdminPage() {
         </div>
       ) : (
         <div className="text-center py-16 border-dashed border-2 rounded-lg">
-            <h2 className="text-xl font-medium">All Clear!</h2>
-            <p className="text-muted-foreground">There are no new user signups to review.</p>
+            <h2 className="text-xl font-medium">No Users Found</h2>
+            <p className="text-muted-foreground">There are no users to display.</p>
         </div>
       )}
     </div>
