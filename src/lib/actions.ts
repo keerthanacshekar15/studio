@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createUser } from './data';
+import { createUser, type CreateUserDTO } from './data';
 import type { VerifyIdInput } from '@/ai/flows/admin-assisted-id-verification';
 import { verifyId } from '@/ai/flows/admin-assisted-id-verification';
 
@@ -35,10 +35,17 @@ const UserSignupSchema = z.object({
 export type UserSignupState = {
     message?: string;
     success: boolean;
-    userId?: string;
+    newUser?: CreateUserDTO & { userId: string };
+    errors?: {
+        fullName?: string[];
+        usn?: string[];
+        idCardImage?: string[];
+    }
 }
 
-export async function userSignup(prevState: UserSignupState, formData: FormData): Promise<UserSignupState> {
+// This action now only validates the data and returns it.
+// The component will then handle the user creation on the client.
+export async function validateUserSignup(prevState: UserSignupState, formData: FormData): Promise<UserSignupState> {
     const validatedFields = UserSignupSchema.safeParse({
         fullName: formData.get('fullName'),
         usn: formData.get('usn'),
@@ -47,22 +54,26 @@ export async function userSignup(prevState: UserSignupState, formData: FormData)
 
     if (!validatedFields.success) {
         return {
-            message: validatedFields.error.flatten().fieldErrors[Object.keys(validatedFields.error.flatten().fieldErrors)[0] as string]![0],
+            message: 'Please check your input.',
             success: false,
+            errors: validatedFields.error.flatten().fieldErrors,
         };
     }
     
-    try {
-        const newUser = await createUser({
-            fullName: validatedFields.data.fullName,
-            usn: validatedFields.data.usn,
-            idCardImageURL: validatedFields.data.idCardImage,
-        });
-        return { message: 'Signup successful! Your account is pending approval.', success: true, userId: newUser.userId };
-    } catch (error) {
-        return { message: 'An unexpected error occurred.', success: false };
-    }
+    // Return the validated data so the client can create the user
+    const newUser = {
+        ...validatedFields.data,
+        userId: `user-${Date.now()}`,
+        idCardImageURL: validatedFields.data.idCardImage,
+    };
+
+    return { 
+        message: 'Validation successful!', 
+        success: true,
+        newUser
+    };
 }
+
 
 export async function runIdVerification(input: VerifyIdInput) {
   try {

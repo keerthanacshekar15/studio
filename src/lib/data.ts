@@ -1,7 +1,9 @@
+'use client'; // This file needs to be a client component to access localStorage
+
 import type { User, Post, Notification } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
-// --- MOCK DATABASE ---
+const USERS_STORAGE_KEY = 'campusFindUsers';
 
 const initialUsers: User[] = [
   {
@@ -31,9 +33,24 @@ const initialUsers: User[] = [
 ];
 
 
-// In-memory 'database' for users.
-// NOTE: This will reset on server restart.
-let users: User[] = [...initialUsers];
+const getStoredUsers = (): User[] => {
+    if (typeof window === 'undefined') {
+        return initialUsers;
+    }
+    const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
+    return storedUsers ? JSON.parse(storedUsers) : initialUsers;
+};
+
+const setStoredUsers = (users: User[]) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    }
+};
+
+// Initialize localStorage if it's empty
+if (typeof window !== 'undefined' && !localStorage.getItem(USERS_STORAGE_KEY)) {
+  setStoredUsers(initialUsers);
+}
 
 let posts: Post[] = [
   {
@@ -104,34 +121,39 @@ let notifications: Notification[] = [
     }
 ]
 
-// --- MOCK API FUNCTIONS ---
+// --- API FUNCTIONS ---
 
 export const getUsers = async (): Promise<User[]> => {
-  // Return a copy to prevent mutation
-  return Promise.resolve([...users].sort((a, b) => b.createdAt - a.createdAt));
+  return Promise.resolve(getStoredUsers().sort((a, b) => b.createdAt - a.createdAt));
 };
 
 export const getUserById = async (userId: string): Promise<User | undefined> => {
-   // Return a copy to prevent mutation
+  const users = getStoredUsers();
   const user = users.find(user => user.userId === userId);
   return Promise.resolve(user ? {...user} : undefined);
 };
 
-export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>): Promise<User> => {
+export type CreateUserDTO = Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>;
+
+export const createUser = async (userData: CreateUserDTO): Promise<User> => {
+  const users = getStoredUsers();
   const newUser: User = {
     ...userData,
     userId: `user-${Date.now()}`,
     createdAt: Date.now(),
     verificationStatus: 'pending',
   };
-  users.push(newUser);
+  const updatedUsers = [...users, newUser];
+  setStoredUsers(updatedUsers);
   return Promise.resolve({...newUser});
 };
 
 export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected'): Promise<User | undefined> => {
+  const users = getStoredUsers();
   const userIndex = users.findIndex(user => user.userId === userId);
   if (userIndex !== -1) {
     users[userIndex].verificationStatus = status;
+    setStoredUsers(users);
     return Promise.resolve({...users[userIndex]});
   }
   return Promise.resolve(undefined);
