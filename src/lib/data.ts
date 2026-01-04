@@ -101,8 +101,8 @@ let notifications: Notification[] = [
 
 // --- MOCK API FUNCTIONS ---
 
-export const getPendingUsers = async (): Promise<User[]> => {
-  return users.filter(user => user.verificationStatus === 'pending');
+export const getUsers = async (): Promise<User[]> => {
+  return users.sort((a, b) => b.createdAt - a.createdAt);
 };
 
 export const getUserById = async (userId: string): Promise<User | undefined> => {

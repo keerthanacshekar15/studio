@@ -1,7 +1,7 @@
 
 'use client';
 import { useState, useEffect } from 'react';
-import { getPendingUsers } from '@/lib/data';
+import { getUsers } from '@/lib/data';
 import type { User } from '@/lib/types';
 import { VerificationCard } from '@/components/admin/VerificationCard';
 import { Logo } from '@/components/Logo';
@@ -11,15 +11,15 @@ import { LogOut } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminPage() {
-  const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const { logout, user, isLoading } = useAuth();
   
   useEffect(() => {
     if (user?.type === 'admin') {
         async function fetchUsers() {
-          const users = await getPendingUsers();
-          setPendingUsers(users);
+          const allUsers = await getUsers();
+          setUsers(allUsers);
           setIsDataLoading(false);
         }
         fetchUsers();
@@ -27,7 +27,14 @@ export default function AdminPage() {
   }, [user]);
   
   const handleStatusChange = (userId: string) => {
-    setPendingUsers(prevUsers => prevUsers.filter(u => u.userId !== userId));
+    setUsers(prevUsers => {
+        const newUsers = [...prevUsers];
+        const userIndex = newUsers.findIndex(u => u.userId === userId);
+        if(userIndex > -1) {
+            newUsers.splice(userIndex, 1);
+        }
+        return newUsers;
+    });
   }
 
   if (isLoading) {
@@ -55,23 +62,23 @@ export default function AdminPage() {
           Logout
         </Button>
       </header>
-      <h1 className="text-2xl font-bold mb-4">Pending Verifications</h1>
+      <h1 className="text-2xl font-bold mb-4">User Verifications</h1>
 
         {isDataLoading ? (
             <div className="space-y-4">
                 <Skeleton className="h-96 w-full" />
                 <Skeleton className="h-96 w-full" />
             </div>
-        ) : pendingUsers.length > 0 ? (
+        ) : users.length > 0 ? (
         <div className="space-y-4">
-          {pendingUsers.map((user) => (
+          {users.map((user) => (
             <VerificationCard key={user.userId} user={user} onStatusChange={handleStatusChange} />
           ))}
         </div>
       ) : (
         <div className="text-center py-16 border-dashed border-2 rounded-lg">
             <h2 className="text-xl font-medium">All Clear!</h2>
-            <p className="text-muted-foreground">There are no pending user verifications.</p>
+            <p className="text-muted-foreground">There are no new user signups to review.</p>
         </div>
       )}
     </div>

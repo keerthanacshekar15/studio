@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, X, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
+import { Check, X, Sparkles, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { runIdVerification } from '@/lib/actions';
 import { updateUserStatus } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -67,10 +67,24 @@ export function VerificationCard({ user, onStatusChange }: VerificationCardProps
     });
   }
 
+  const getStatusBadge = (status: User['verificationStatus']) => {
+    switch(status) {
+      case 'approved':
+        return <Badge variant="default" className="bg-green-500">Approved</Badge>
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{user.fullName}</CardTitle>
+        <div className="flex items-center justify-between">
+            <CardTitle>{user.fullName}</CardTitle>
+            {getStatusBadge(user.verificationStatus)}
+        </div>
         <CardDescription>USN: {user.usn}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -99,7 +113,7 @@ export function VerificationCard({ user, onStatusChange }: VerificationCardProps
         )}
       </CardContent>
       <CardFooter className="grid grid-cols-3 gap-2">
-        <Button variant="outline" onClick={handleAiVerification} disabled={isVerifying}>
+        <Button variant="outline" onClick={handleAiVerification} disabled={isVerifying || user.verificationStatus !== 'pending'}>
           {isVerifying ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -107,10 +121,10 @@ export function VerificationCard({ user, onStatusChange }: VerificationCardProps
           )}
           AI Check
         </Button>
-        <Button variant="destructive" onClick={() => handleUpdateStatus('rejected')}>
+        <Button variant="destructive" onClick={() => handleUpdateStatus('rejected')} disabled={user.verificationStatus === 'rejected'}>
           <X className="mr-2 h-4 w-4" /> Reject
         </Button>
-        <Button onClick={() => handleUpdateStatus('approved')}>
+        <Button onClick={() => handleUpdateStatus('approved')} disabled={user.verificationStatus === 'approved'}>
           <Check className="mr-2 h-4 w-4" /> Approve
         </Button>
       </CardFooter>
