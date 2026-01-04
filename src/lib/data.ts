@@ -32,42 +32,10 @@ const initialUsers: User[] = [
   },
 ];
 
-// This variable will hold users in memory on the server.
-let serverSideUsers: User[] = [...initialUsers];
 
-const getStoredUsers = (): User[] => {
-  if (typeof window === 'undefined') {
-    // On the server, return the server-side in-memory list.
-    return serverSideUsers;
-  }
-  try {
-    const stored = localStorage.getItem('mock-users');
-    if (stored) {
-      return JSON.parse(stored);
-    } else {
-      // If nothing is in localStorage, initialize it with the default users
-      localStorage.setItem('mock-users', JSON.stringify(initialUsers));
-      return [...initialUsers];
-    }
-  } catch (e) {
-    console.error("Failed to parse users from localStorage", e);
-    return [...initialUsers]; // Fallback to initial data
-  }
-};
-
-const setStoredUsers = (users: User[]) => {
-  if (typeof window === 'undefined') {
-    // On the server, update the server-side in-memory list.
-    serverSideUsers = users;
-    return;
-  }
-  try {
-    localStorage.setItem('mock-users', JSON.stringify(users));
-  } catch (e) {
-    console.error("Failed to save users to localStorage", e);
-  }
-};
-
+// In-memory 'database' for users.
+// NOTE: This will reset on server restart.
+let users: User[] = [...initialUsers];
 
 let posts: Post[] = [
   {
@@ -141,35 +109,28 @@ let notifications: Notification[] = [
 // --- MOCK API FUNCTIONS ---
 
 export const getUsers = async (): Promise<User[]> => {
-  const users = getStoredUsers();
-  return users.sort((a, b) => b.createdAt - a.createdAt);
+  return [...users].sort((a, b) => b.createdAt - a.createdAt);
 };
 
 export const getUserById = async (userId: string): Promise<User | undefined> => {
-  const users = getStoredUsers();
   return users.find(user => user.userId === userId);
 };
 
 export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>): Promise<User> => {
-  const users = getStoredUsers();
   const newUser: User = {
     ...userData,
     userId: `user-${Date.now()}`,
     createdAt: Date.now(),
     verificationStatus: 'pending',
   };
-  
-  const updatedUsers = [...users, newUser];
-  setStoredUsers(updatedUsers);
+  users.push(newUser);
   return newUser;
 };
 
 export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected'): Promise<User | undefined> => {
-  const users = getStoredUsers();
   const userIndex = users.findIndex(user => user.userId === userId);
   if (userIndex !== -1) {
     users[userIndex].verificationStatus = status;
-    setStoredUsers(users);
     return users[userIndex];
   }
   return undefined;
