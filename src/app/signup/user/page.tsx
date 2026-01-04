@@ -37,19 +37,11 @@ export default function UserSignupPage() {
 
   useEffect(() => {
     if (state.success && state.newUser) {
-      if (state.isExistingUser) {
-        toast({
-          title: 'Account Exists',
-          description: 'An account with this USN already exists. Please log in.',
-        });
-        router.push('/login');
-      } else {
         toast({
           title: 'Success',
-          description: 'Signup successful! Your account is pending approval.',
+          description: 'Request for account creation submitted successfully, wait for approval.',
         });
         login(state.newUser.userId, 'user');
-      }
     } else if (!state.success && state.message) {
       toast({
         title: 'Error',
