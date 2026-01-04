@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, KeyRound } from 'lucide-react';
@@ -24,7 +24,7 @@ function SubmitButton() {
 
 export default function AdminSignupPage() {
   const initialState: AdminSignupState = { message: '', success: false };
-  const [state, dispatch] = useFormState(adminSignup, initialState);
+  const [state, dispatch] = useActionState(adminSignup, initialState);
   const { toast } = useToast();
   const { login } = useAuth();
 

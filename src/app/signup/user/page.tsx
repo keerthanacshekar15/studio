@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, User, Hash, UploadCloud } from 'lucide-react';
@@ -26,7 +26,7 @@ function SubmitButton() {
 
 export default function UserSignupPage() {
   const initialState: UserSignupState = { message: '', success: false };
-  const [state, dispatch] = useFormState(userSignup, initialState);
+  const [state, dispatch] = useActionState(userSignup, initialState);
   const { toast } = useToast();
   const { login } = useAuth();
   
