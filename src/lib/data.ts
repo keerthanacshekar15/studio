@@ -1,6 +1,4 @@
 
-'use client'; 
-
 import type { User, Post, Notification } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
@@ -45,6 +43,8 @@ const getStoredUsers = (): User[] => {
     } catch (e) {
         console.error("Could not parse users from localStorage", e);
     }
+    // If nothing in localStorage, initialize it with the default users.
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initialUsers));
     return initialUsers;
 };
 
@@ -58,9 +58,6 @@ const setStoredUsers = (users: User[]) => {
     }
 };
 
-if (typeof window !== 'undefined' && !localStorage.getItem(USERS_STORAGE_KEY)) {
-  setStoredUsers(initialUsers);
-}
 
 let posts: Post[] = [
   {
