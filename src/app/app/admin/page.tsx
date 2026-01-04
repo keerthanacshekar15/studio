@@ -27,8 +27,7 @@ export default function AdminPage() {
     if (user?.type === 'admin') {
       fetchUsers();
     }
-  // The empty dependency array [] is the key to fixing the loop.
-  // It ensures this data fetch happens only ONCE.
+  // The dependency on user.type ensures this data fetch happens only ONCE when the admin logs in.
   }, [user?.type]); 
   
   const handleStatusChange = (userId: string, status: 'approved' | 'rejected') => {
