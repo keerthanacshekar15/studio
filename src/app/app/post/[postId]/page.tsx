@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useActionState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Post, Reply, User } from '@/lib/types';
 import { addReplyToServer, getPostWithReplies } from '@/lib/server-actions';
@@ -47,13 +47,14 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (params.postId) {
-            getPostWithReplies(params.postId).then(result => {
+        const { postId } = params;
+        if (postId) {
+            getPostWithReplies(postId).then(result => {
                 setData(result);
                 setIsLoading(false);
             });
         }
-    }, [params.postId]);
+    }, [params]);
     
     const handleReplyAdded = (newReply: Reply) => {
         setData(prevData => {
