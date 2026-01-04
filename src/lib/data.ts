@@ -1,19 +1,8 @@
 
 'use server';
 
-import {
-  collection,
-  doc,
-  addDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  updateDoc,
-  orderBy,
-  limit,
-} from 'firebase-admin/firestore';
-import { firestore } from '@/firebase/server-init';
+import { getFirestore } from 'firebase-admin/firestore';
+import { firestore as adminFirestore } from '@/firebase/server-init';
 import type { User, Post, Notification } from './types';
 
 const USERS_COLLECTION = 'users';
@@ -21,18 +10,18 @@ const POSTS_COLLECTION = 'posts';
 const NOTIFICATIONS_COLLECTION = 'notifications';
 
 export const getUsers = async (): Promise<User[]> => {
-  const usersRef = collection(firestore, USERS_COLLECTION);
-  const q = query(usersRef, orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
+  const usersRef = adminFirestore.collection(USERS_COLLECTION);
+  const q = usersRef.orderBy('createdAt', 'desc');
+  const querySnapshot = await q.get();
   return querySnapshot.docs.map(doc => ({ ...doc.data(), userId: doc.id } as User));
 };
 
 export const getUserById = async (
   userId: string
 ): Promise<User | undefined> => {
-  const userRef = doc(firestore, USERS_COLLECTION, userId);
-  const userSnap = await getDoc(userRef);
-  if (userSnap.exists()) {
+  const userRef = adminFirestore.doc(`${USERS_COLLECTION}/${userId}`);
+  const userSnap = await userRef.get();
+  if (userSnap.exists) {
     return { ...userSnap.data(), userId: userSnap.id } as User;
   }
   return undefined;
@@ -42,14 +31,12 @@ export const getUserByCredentials = async (
   fullName: string,
   usn: string
 ): Promise<User | undefined> => {
-  const usersRef = collection(firestore, USERS_COLLECTION);
-  const q = query(
-    usersRef,
-    where('fullName', '==', fullName),
-    where('usn', '==', usn),
-    limit(1)
-  );
-  const querySnapshot = await getDocs(q);
+  const usersRef = adminFirestore.collection(USERS_COLLECTION);
+  const q = usersRef
+    .where('fullName', '==', fullName)
+    .where('usn', '==', usn)
+    .limit(1);
+  const querySnapshot = await q.get();
   if (!querySnapshot.empty) {
     const userDoc = querySnapshot.docs[0];
     return { ...userDoc.data(), userId: userDoc.id } as User;
@@ -65,9 +52,9 @@ export type CreateUserDTO = Omit<
 export const createUser = async (
   userData: CreateUserDTO
 ): Promise<{ user: User; isExisting: boolean }> => {
-  const usersRef = collection(firestore, USERS_COLLECTION);
-  const q = query(usersRef, where('usn', '==', userData.usn), limit(1));
-  const querySnapshot = await getDocs(q);
+  const usersRef = adminFirestore.collection(USERS_COLLECTION);
+  const q = usersRef.where('usn', '==', userData.usn).limit(1);
+  const querySnapshot = await q.get();
 
   if (!querySnapshot.empty) {
     const existingUserDoc = querySnapshot.docs[0];
@@ -84,7 +71,7 @@ export const createUser = async (
   };
 
   try {
-    const newUserRef = await addDoc(collection(firestore, USERS_COLLECTION), newUserPayload);
+    const newUserRef = await usersRef.add(newUserPayload);
 
     const newUser: User = {
         ...newUserPayload,
@@ -102,11 +89,11 @@ export const updateUserStatus = async (
   userId: string,
   status: 'approved' | 'rejected'
 ): Promise<User | undefined> => {
-  const userRef = doc(firestore, USERS_COLLECTION, userId);
-  await updateDoc(userRef, { verificationStatus: status });
-  // After updating, send a notification
-  const notificationRef = collection(firestore, USERS_COLLECTION, userId, NOTIFICATIONS_COLLECTION);
-  await addDoc(notificationRef, {
+  const userRef = adminFirestore.doc(`${USERS_COLLECTION}/${userId}`);
+  await userRef.update({ verificationStatus: status });
+  
+  const notificationRef = adminFirestore.collection(`${USERS_COLLECTION}/${userId}/${NOTIFICATIONS_COLLECTION}`);
+  await notificationRef.add({
       type: status === 'approved' ? 'approval' : 'rejection',
       content: `Your account has been ${status}.`,
       createdAt: Date.now(),
@@ -118,12 +105,9 @@ export const updateUserStatus = async (
 };
 
 export const getPosts = async (): Promise<Post[]> => {
-  const postsRef = collection(firestore, POSTS_COLLECTION);
-  const q = query(
-    postsRef,
-    orderBy('createdAt', 'desc')
-  );
-  const querySnapshot = await getDocs(q);
+  const postsRef = adminFirestore.collection(POSTS_COLLECTION);
+  const q = postsRef.orderBy('createdAt', 'desc');
+  const querySnapshot = await q.get();
   const posts = querySnapshot.docs.map(
     doc => ({ ...doc.data(), postId: doc.id } as Post)
   );
@@ -136,6 +120,7 @@ export const createPost = async (
     'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'
   >
 ) => {
+  const postsRef = adminFirestore.collection(POSTS_COLLECTION);
   const newPost: Omit<Post, 'postId'> = {
     ...postData,
     status: 'open',
@@ -143,20 +128,15 @@ export const createPost = async (
     createdAt: Date.now(),
     expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
   };
-  await addDoc(collection(firestore, POSTS_COLLECTION), newPost);
+  await postsRef.add(newPost);
 };
 
 export const getNotifications = async (
   userId: string
 ): Promise<Notification[]> => {
-  const notificationsRef = collection(
-    firestore,
-    USERS_COLLECTION,
-    userId,
-    NOTIFICATIONS_COLLECTION
-  );
-  const q = query(notificationsRef, orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
+  const notificationsRef = adminFirestore.collection(`${USERS_COLLECTION}/${userId}/${NOTIFICATIONS_COLLECTION}`);
+  const q = notificationsRef.orderBy('createdAt', 'desc');
+  const querySnapshot = await q.get();
   return querySnapshot.docs.map(
     doc => ({ ...doc.data(), notificationId: doc.id } as Notification)
   );
