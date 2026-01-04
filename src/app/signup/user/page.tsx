@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState, useEffect, useState, useRef } from 'react';
@@ -42,6 +43,7 @@ export default function UserSignupPage() {
           description: state.message || 'Request for account creation submitted successfully, wait for approval.',
         });
         login(state.newUser.userId, 'user');
+        router.push('/pending');
     } else if (!state.success && state.message) {
       toast({
         title: 'Error',
@@ -49,7 +51,7 @@ export default function UserSignupPage() {
         variant: 'destructive',
       });
     }
-  }, [state, isPending]);
+  }, [state, isPending, login, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,7 +107,7 @@ export default function UserSignupPage() {
               >
                 <div className="space-y-1 text-center">
                   {imagePreview ? (
-                    <Image src={imagePreview} alt="ID card preview" width={200} height={125} className="mx-auto rounded-md object-cover"/>
+                    <Image src={imagePreview} alt="ID card preview" width={200} height={125} className="mx-auto rounded-md object-cover" unoptimized/>
                   ) : (
                     <>
                     <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
