@@ -78,7 +78,9 @@ export const createUser = async (
     };
   }
 
-  const newUserRef = doc(collection(firestore, USERS_COLLECTION));
+  const usersCollection = collection(firestore, USERS_COLLECTION);
+  const newUserRef = doc(usersCollection); // Correctly get a new doc ref with an auto-id
+
   const newUser: User = {
     ...userData,
     userId: newUserRef.id,
