@@ -18,7 +18,7 @@ const VerifyIdInputSchema = z.object({
   idCardImage: z
     .string()
     .describe(
-      'The ID card image as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.' // Corrected typo here
+      "The ID card image as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   fullName: z.string().describe('The full name of the user.'),
   usn: z.string().describe('The USN/Roll Number of the user.'),

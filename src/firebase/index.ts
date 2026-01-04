@@ -2,8 +2,8 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 // This function is for CLIENT-SIDE INITIALIZATION ONLY.
 export function initializeFirebase() {
@@ -17,11 +17,13 @@ export function initializeFirebase() {
   }
 
   const firebaseApp = initializeApp(firebaseConfig);
+  const auth = getAuth(firebaseApp);
+  const firestore = getFirestore(firebaseApp);
   
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    auth,
+    firestore,
   };
 }
 

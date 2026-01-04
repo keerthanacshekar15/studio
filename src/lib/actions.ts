@@ -3,13 +3,13 @@
 import { z } from 'zod';
 import {
   createUser,
-  type CreateUserDTO,
   getUserByCredentials,
   createPost,
+  type CreateUserDTO as DataCreateUserDTO
 } from './data';
 import type { VerifyIdInput } from '@/ai/flows/admin-assisted-id-verification';
 import { verifyId } from '@/ai/flows/admin-assisted-id-verification';
-import type { Post } from './types';
+import type { Post, User } from './types';
 
 const ADMIN_KEY = '298761';
 
@@ -35,18 +35,18 @@ export async function adminSignup(
 const UserSignupSchema = z.object({
   fullName: z.string().min(3, 'Full name must be at least 3 characters.'),
   usn: z.string().regex(/^4VM/, 'USN must start with "4VM".'),
-  idCardImage: z.string().url('A valid image URL is required.'),
+  idCardImageURL: z.string().url('A valid image URL is required.'),
 });
 
 export type UserSignupState = {
   message?: string;
   success: boolean;
   isExistingUser?: boolean;
-  newUser?: CreateUserDTO & { userId: string };
+  newUser?: User;
   errors?: {
     fullName?: string[];
     usn?: string[];
-    idCardImage?: string[];
+    idCardImageURL?: string[];
   };
 };
 
@@ -57,7 +57,7 @@ export async function validateUserSignup(
   const validatedFields = UserSignupSchema.safeParse({
     fullName: formData.get('fullName'),
     usn: formData.get('usn'),
-    idCardImage: formData.get('idCardImage'),
+    idCardImageURL: formData.get('idCardImage'),
   });
 
   if (!validatedFields.success) {
@@ -68,26 +68,26 @@ export async function validateUserSignup(
     };
   }
   
-  const newUser = {
+  const newUserDTO: DataCreateUserDTO = {
     ...validatedFields.data,
   };
 
   try {
-    const { user: createdUser, isExisting } = await createUser(newUser);
+    const { user: createdUser, isExisting } = await createUser(newUserDTO);
 
     if (isExisting) {
       return {
         message: 'An account with this USN already exists. Please log in.',
         success: true,
         isExistingUser: true,
-        newUser: { ...newUser, userId: createdUser.userId },
+        newUser: createdUser,
       };
     }
 
     return {
       message: 'Signup successful! Your account is pending approval.',
       success: true,
-      newUser: { ...newUser, userId: createdUser.userId },
+      newUser: createdUser,
     };
   } catch (err: any) {
     console.error("Error in validateUserSignup:", err);
@@ -159,7 +159,7 @@ const PostSchema = z.object({
   location: z.string().min(1, 'Location is required.'),
   date: z.string().min(1, 'Date is required.'),
   postType: z.enum(['lost', 'found']),
-  itemImageURL: z.string().url('A valid image URL is required.').optional(),
+  itemImageURL: z.string().url('A valid image URL is required.').optional().or(z.literal('')),
   postedBy: z.string(),
   postedByName: z.string()
 });
@@ -205,6 +205,7 @@ export async function newPostAction(prevState: NewPostState, formData: FormData)
 
         return { message: 'Post created successfully!', success: true };
     } catch(e) {
+        console.error("Error creating post:", e);
         return { message: 'Failed to create post.', success: false };
     }
 }
