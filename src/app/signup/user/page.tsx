@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState, useEffect, useState, useRef } from 'react';
@@ -40,8 +41,8 @@ export default function UserSignupPage() {
         fullName: state.newUser.fullName,
         usn: state.newUser.usn,
         idCardImageURL: state.newUser.idCardImageURL,
-      }).then((createdUser) => {
-        if (createdUser.isExisting) {
+      }).then(({ user: createdUser, isExisting }) => {
+        if (isExisting) {
            toast({
             title: 'Account Exists',
             description: 'An account with this USN already exists. Please log in.',

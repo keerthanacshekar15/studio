@@ -15,6 +15,7 @@ export default function AdminPage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const { logout, user, isLoading } = useAuth();
   
+  // This effect now only runs once when the component mounts if the user is an admin.
   useEffect(() => {
     const fetchUsers = async () => {
       setIsDataLoading(true);
@@ -26,7 +27,7 @@ export default function AdminPage() {
     if (user?.type === 'admin') {
       fetchUsers();
     }
-  }, [user]);
+  }, []); // Empty dependency array ensures this runs only once.
   
   const handleStatusChange = (userId: string, status: 'approved' | 'rejected') => {
     // This is the key fix: filter the user from the local state to remove them from the UI.

@@ -1,4 +1,5 @@
-'use client'; // This file needs to be a client component to access localStorage
+
+'use client'; 
 
 import type { User, Post, Notification } from './types';
 import { PlaceHolderImages } from './placeholder-images';
@@ -36,17 +37,27 @@ const getStoredUsers = (): User[] => {
     if (typeof window === 'undefined') {
         return initialUsers;
     }
-    const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-    return storedUsers ? JSON.parse(storedUsers) : initialUsers;
+    try {
+        const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
+        if (storedUsers) {
+            return JSON.parse(storedUsers);
+        }
+    } catch (e) {
+        console.error("Could not parse users from localStorage", e);
+    }
+    return initialUsers;
 };
 
 const setStoredUsers = (users: User[]) => {
     if (typeof window !== 'undefined') {
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        try {
+            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        } catch (e) {
+            console.error("Could not save users to localStorage", e);
+        }
     }
 };
 
-// Initialize localStorage if it's empty
 if (typeof window !== 'undefined' && !localStorage.getItem(USERS_STORAGE_KEY)) {
   setStoredUsers(initialUsers);
 }
@@ -120,8 +131,6 @@ let notifications: Notification[] = [
     }
 ]
 
-// --- API FUNCTIONS ---
-
 export const getUsers = async (): Promise<User[]> => {
   return Promise.resolve(getStoredUsers().sort((a, b) => b.createdAt - a.createdAt));
 };
@@ -140,12 +149,12 @@ export const getUserByCredentials = async (fullName: string, usn: string): Promi
 
 export type CreateUserDTO = Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>;
 
-export const createUser = async (userData: CreateUserDTO): Promise<User & { isExisting?: boolean }> => {
+export const createUser = async (userData: CreateUserDTO): Promise<{ user: User, isExisting: boolean }> => {
   const users = getStoredUsers();
   const existingUser = users.find(u => u.usn === userData.usn);
 
   if (existingUser) {
-    return { ...existingUser, isExisting: true };
+    return { user: { ...existingUser }, isExisting: true };
   }
 
   const newUser: User = {
@@ -156,7 +165,7 @@ export const createUser = async (userData: CreateUserDTO): Promise<User & { isEx
   };
   const updatedUsers = [...users, newUser];
   setStoredUsers(updatedUsers);
-  return Promise.resolve({...newUser, isExisting: false});
+  return Promise.resolve({ user: { ...newUser }, isExisting: false });
 };
 
 export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected'): Promise<User | undefined> => {
@@ -171,7 +180,6 @@ export const updateUserStatus = async (userId: string, status: 'approved' | 'rej
 };
 
 export const getPosts = async (): Promise<Post[]> => {
-  // Filter out expired posts
   return Promise.resolve(posts
     .filter(post => post.expiresAt > Date.now())
     .sort((a, b) => b.createdAt - a.createdAt));
