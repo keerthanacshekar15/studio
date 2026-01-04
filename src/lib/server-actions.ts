@@ -140,30 +140,3 @@ export const createPost = async (
 export const getNotifications = async (userId: string): Promise<Notification[]> => {
     return db.getNotifications(userId);
 };
-
-export const getChat = async (postId: string, currentUser: User): Promise<{ chat: any, post: Post } | null> => {
-    const post = await db.getPostById(postId);
-    if (!post) return null;
-
-    const postOwner = await db.getUserById(post.postedBy);
-    if (!postOwner) return null;
-
-    const chat = await db.getOrCreateChat(postId, postOwner, currentUser);
-    return { chat, post };
-}
-
-export const addMessage = async(chatId: string, text: string, sender: User): Promise<Message> => {
-    const message: Message = {
-        messageId: `msg-${Date.now()}`,
-        chatId,
-        text,
-        senderId: sender.userId,
-        senderName: sender.fullName,
-        timestamp: Date.now()
-    }
-    return db.addMessageToChat(chatId, message);
-}
-
-export const getChatsForUser = async (userId: string): Promise<Chat[]> => {
-    return db.getChatsForUser(userId);
-}

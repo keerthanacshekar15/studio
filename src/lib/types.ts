@@ -64,7 +64,7 @@ export type Message = {
 export type Notification = {
   notificationId: string;
   userId: string;
-  type: 'reply' | 'message' | 'approval' | 'rejection';
+  type: 'reply' | 'approval' | 'rejection';
   content: string;
   link: string;
   createdAt: number;

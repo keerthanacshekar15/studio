@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
-import { Send, ArrowLeft, MessageSquare } from 'lucide-react';
+import { Send, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -90,14 +90,6 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
             </Button>
 
             <PostCard post={post} />
-            
-            {user && user.type === 'user' && post.postedBy !== user.userId && (
-                <Button asChild className="w-full mt-4">
-                    <Link href={`/app/chat/${post.postId}`}>
-                        <MessageSquare className="mr-2 h-4 w-4" /> Message Owner
-                    </Link>
-                </Button>
-            )}
 
             <Card className="mt-4">
                 <CardHeader>

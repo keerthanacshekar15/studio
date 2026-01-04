@@ -2,13 +2,12 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, MessageSquare, Bell, Shield } from 'lucide-react';
+import { LayoutGrid, Bell, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 
 const allNavItems = [
   { href: '/app/feed', icon: LayoutGrid, label: 'Feed', for: 'user' },
-  { href: '/app/messages', icon: MessageSquare, label: 'Messages', for: 'user' },
   { href: '/app/notifications', icon: Bell, label: 'Notifications', for: 'user' },
   { href: '/app/admin', icon: Shield, label: 'Admin', for: 'admin' },
 ];
