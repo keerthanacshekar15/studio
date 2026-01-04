@@ -50,7 +50,8 @@ export default function UserSignupPage() {
         variant: 'destructive',
       });
     }
-  }, [state, toast, login, isPending, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, isPending]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
