@@ -1,5 +1,3 @@
-
-'use client';
 import type { User, Post, Notification } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
@@ -109,11 +107,14 @@ let notifications: Notification[] = [
 // --- MOCK API FUNCTIONS ---
 
 export const getUsers = async (): Promise<User[]> => {
-  return [...users].sort((a, b) => b.createdAt - a.createdAt);
+  // Return a copy to prevent mutation
+  return Promise.resolve([...users].sort((a, b) => b.createdAt - a.createdAt));
 };
 
 export const getUserById = async (userId: string): Promise<User | undefined> => {
-  return users.find(user => user.userId === userId);
+   // Return a copy to prevent mutation
+  const user = users.find(user => user.userId === userId);
+  return Promise.resolve(user ? {...user} : undefined);
 };
 
 export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>): Promise<User> => {
@@ -124,27 +125,27 @@ export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | '
     verificationStatus: 'pending',
   };
   users.push(newUser);
-  return newUser;
+  return Promise.resolve({...newUser});
 };
 
 export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected'): Promise<User | undefined> => {
   const userIndex = users.findIndex(user => user.userId === userId);
   if (userIndex !== -1) {
     users[userIndex].verificationStatus = status;
-    return users[userIndex];
+    return Promise.resolve({...users[userIndex]});
   }
-  return undefined;
+  return Promise.resolve(undefined);
 };
 
 export const getPosts = async (): Promise<Post[]> => {
   // Filter out expired posts
-  return posts
+  return Promise.resolve(posts
     .filter(post => post.expiresAt > Date.now())
-    .sort((a, b) => b.createdAt - a.createdAt);
+    .sort((a, b) => b.createdAt - a.createdAt));
 };
 
 export const getNotifications = async (userId: string): Promise<Notification[]> => {
-    return notifications
+    return Promise.resolve(notifications
         .filter(n => n.userId === userId)
-        .sort((a, b) => b.createdAt - a.createdAt);
+        .sort((a, b) => b.createdAt - a.createdAt));
 }
