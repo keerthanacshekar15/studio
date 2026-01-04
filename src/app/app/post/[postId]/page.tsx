@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Post, Reply, User } from '@/lib/types';
 import { addReplyToServer, getPostWithReplies } from '@/lib/server-actions';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDistanceToNow } from 'date-fns';
-import { Send, ArrowLeft, MessageSquare, Reply as ReplyIcon } from 'lucide-react';
+import { Send, ArrowLeft, Reply as ReplyIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -96,16 +96,15 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
     const { user, isLoading: isAuthLoading } = useAuth();
     const [data, setData] = useState<{ post: Post; replies: Reply[] } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const resolvedParams = use(params);
     
     useEffect(() => {
-        if (resolvedParams.postId) {
-            getPostWithReplies(resolvedParams.postId).then(result => {
+        if (params.postId) {
+            getPostWithReplies(params.postId).then(result => {
                 setData(result);
                 setIsLoading(false);
             });
         }
-    }, [resolvedParams.postId]);
+    }, [params.postId]);
     
     const handleReplyAdded = (newReply: Reply) => {
         setData(prevData => {
@@ -143,14 +142,6 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
             </Button>
 
             <PostCard post={post} />
-            
-            {user && user.type === 'user' && post.postedBy !== user.userId && (
-                <Button asChild className="w-full mt-4">
-                    <Link href={`/app/chat/${post.postId}`}>
-                        <MessageSquare className="mr-2 h-4 w-4" /> Message Owner
-                    </Link>
-                </Button>
-            )}
 
             <Card className="mt-4">
                 <CardHeader>
