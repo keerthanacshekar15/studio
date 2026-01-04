@@ -1,16 +1,15 @@
-
 'use server';
 
 import { z } from 'zod';
 import {
   createUser,
   getUserByCredentials,
-  createPost,
-  type CreateUserDTO
-} from './data';
-import type { VerifyIdInput } from '@/ai/flows/admin-assisted-id-verification';
-import { verifyId } from '@/ai/flows/admin-assisted-id-verification';
+  createPost as createPostServer,
+  type CreateUserDTO,
+} from './server-actions';
 import type { Post, User } from './types';
+import { verifyId as verifyIdFlow } from '@/ai/flows/admin-assisted-id-verification';
+import type { VerifyIdInput } from '@/ai/flows/admin-assisted-id-verification';
 
 const ADMIN_KEY = '298761';
 
@@ -68,7 +67,7 @@ export async function validateUserSignup(
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
-  
+
   const newUserDTO: CreateUserDTO = {
     fullName: validatedFields.data.fullName,
     usn: validatedFields.data.usn,
@@ -93,9 +92,10 @@ export async function validateUserSignup(
       newUser: createdUser,
     };
   } catch (err: any) {
-    console.error("Error in validateUserSignup:", err);
+    console.error('Error in validateUserSignup:', err);
     return {
-      message: err.message || 'An unexpected error occurred during user creation.',
+      message:
+        err.message || 'An unexpected error occurred during user creation.',
       success: false,
     };
   }
@@ -103,7 +103,7 @@ export async function validateUserSignup(
 
 export async function runIdVerification(input: VerifyIdInput) {
   try {
-    const result = await verifyId(input);
+    const result = await verifyIdFlow(input);
     return { success: true, data: result };
   } catch (error) {
     console.error(error);
@@ -139,20 +139,28 @@ export async function loginUser(
   }
 
   const { fullName, usn } = validatedFields.data;
-  
-  const existingUser = await getUserByCredentials(fullName, usn);
 
-  if (existingUser) {
+  try {
+    const existingUser = await getUserByCredentials(fullName, usn);
+
+    if (existingUser) {
+      return {
+        message: 'Login successful!',
+        success: true,
+        user: existingUser,
+      };
+    } else {
+      return {
+        message: 'Invalid credentials or user not found.',
+        success: false,
+      };
+    }
+  } catch (err: any) {
+    console.error('Error in loginUser:', err);
     return {
-      message: 'Login successful!',
-      success: true,
-      user: existingUser,
-    };
-  } else {
-    return {
-      message: 'Invalid credentials or user not found.',
-      success: false,
-    };
+        message: err.message || 'An unexpected error occurred during login.',
+        success: false,
+    }
   }
 }
 
@@ -201,10 +209,12 @@ export async function newPostAction(prevState: NewPostState, formData: FormData)
     }
     
     try {
-        await createPost({
+        const postData = {
             ...validatedFields.data,
             date: new Date(validatedFields.data.date).getTime(),
-        } as Omit<Post, 'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'>);
+        } as Omit<Post, 'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'>;
+
+        await createPostServer(postData);
 
         return { message: 'Post created successfully!', success: true };
     } catch(e) {

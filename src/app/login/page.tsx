@@ -28,12 +28,7 @@ export default function LoginPage() {
   
   const initialState: LoginState = { message: '', success: false };
   
-  const formAction = async (prevState: LoginState, formData: FormData): Promise<LoginState> => {
-    const result = await loginUser(prevState, formData);
-    return result;
-  }
-  
-  const [state, dispatch] = useActionState(formAction, initialState);
+  const [state, dispatch] = useActionState(loginUser, initialState);
 
   useEffect(() => {
     if (state.message) {

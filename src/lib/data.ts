@@ -1,144 +1,18 @@
+// This file is intentionally left blank.
+// Server-side data fetching is now handled in src/lib/server-actions.ts
+// Client-side data fetching can be added here if needed.
+import {
+    getUsers as getUsers_server,
+    getUserById as getUserById_server,
+    getPosts as getPosts_server,
+    getNotifications as getNotifications_server,
+    updateUserStatus as updateUserStatus_server
+} from './server-actions';
 
-'use server';
-
-import { firestore } from '@/lib/firebase-admin';
-import type { User, Post, Notification } from './types';
-
-const USERS_COLLECTION = 'users';
-const POSTS_COLLECTION = 'posts';
-const NOTIFICATIONS_COLLECTION = 'notifications';
-
-export const getUsers = async (): Promise<User[]> => {
-  const usersRef = firestore.collection(USERS_COLLECTION);
-  const q = usersRef.orderBy('createdAt', 'desc');
-  const querySnapshot = await q.get();
-  return querySnapshot.docs.map(doc => ({ ...(doc.data() as Omit<User, 'userId'>), userId: doc.id }));
-};
-
-export const getUserById = async (
-  userId: string
-): Promise<User | undefined> => {
-  const userRef = firestore.doc(`${USERS_COLLECTION}/${userId}`);
-  const userSnap = await userRef.get();
-  if (userSnap.exists) {
-    return { ...(userSnap.data() as Omit<User, 'userId'>), userId: userSnap.id };
-  }
-  return undefined;
-};
-
-export const getUserByCredentials = async (
-  fullName: string,
-  usn: string
-): Promise<User | undefined> => {
-  const usersRef = firestore.collection(USERS_COLLECTION);
-  const q = usersRef
-    .where('fullName', '==', fullName)
-    .where('usn', '==', usn)
-    .limit(1);
-  const querySnapshot = await q.get();
-  if (!querySnapshot.empty) {
-    const userDoc = querySnapshot.docs[0];
-    return { ...(userDoc.data() as Omit<User, 'userId'>), userId: userDoc.id };
-  }
-  return undefined;
-};
-
-export type CreateUserDTO = Omit<
-  User,
-  'userId' | 'createdAt' | 'verificationStatus'
->;
-
-export const createUser = async (
-  userData: CreateUserDTO
-): Promise<{ user: User; isExisting: boolean }> => {
-  const usersRef = firestore.collection(USERS_COLLECTION);
-  const q = usersRef.where('usn', '==', userData.usn).limit(1);
-  const querySnapshot = await q.get();
-
-  if (!querySnapshot.empty) {
-    const existingUserDoc = querySnapshot.docs[0];
-    return {
-      user: { ...(existingUserDoc.data() as Omit<User, 'userId'>), userId: existingUserDoc.id },
-      isExisting: true,
-    };
-  }
-  
-  const newUserPayload = {
-      ...userData,
-      createdAt: Date.now(),
-      verificationStatus: 'pending' as const,
-  };
-
-  try {
-    const newUserRef = await usersRef.add(newUserPayload);
-    
-    const newUser: User = { 
-      ...newUserPayload, 
-      userId: newUserRef.id
-    };
-
-    return { user: newUser, isExisting: false };
-  } catch(error) {
-    console.error("Error creating user in Firestore:", error);
-    throw new Error("Could not create user document in the database.");
-  }
-};
-
-export const updateUserStatus = async (
-  userId: string,
-  status: 'approved' | 'rejected'
-): Promise<User | undefined> => {
-  const userRef = firestore.doc(`${USERS_COLLECTION}/${userId}`);
-  await userRef.update({ verificationStatus: status });
-  
-  const notificationRef = firestore.collection(`${USERS_COLLECTION}/${userId}/${NOTIFICATIONS_COLLECTION}`);
-  await notificationRef.add({
-      type: status === 'approved' ? 'approval' : 'rejection',
-      content: `Your account has been ${status}.`,
-      createdAt: Date.now(),
-      readStatus: false,
-      userId: userId,
-      link: status === 'approved' ? '/app/feed' : '/'
-  });
-
-  return getUserById(userId);
-};
-
-export const getPosts = async (): Promise<Post[]> => {
-  const postsRef = firestore.collection(POSTS_COLLECTION);
-  const q = postsRef.orderBy('createdAt', 'desc');
-  const querySnapshot = await q.get();
-  const now = Date.now();
-  const posts = querySnapshot.docs.map(
-    doc => ({ ...(doc.data() as Omit<Post, 'postId'>), postId: doc.id })
-  );
-  return posts.filter(post => post.expiresAt > now);
-};
-
-export const createPost = async (
-  postData: Omit<
-    Post,
-    'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'
-  >
-) => {
-  const postsRef = firestore.collection(POSTS_COLLECTION);
-  const newPost: Omit<Post, 'postId'> = {
-    ...postData,
-    status: 'open',
-    replyCount: 0,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
-  };
-  await postsRef.add(newPost);
-};
-
-export const getNotifications = async (
-  userId: string
-): Promise<Notification[]> => {
-  const notificationsRef = firestore.collection(`${USERS_COLLECTION}/${userId}/${NOTIFICATIONS_COLLECTION}`);
-  const q = notificationsRef.orderBy('createdAt', 'desc');
-  const querySnapshot = await q.get();
-  return querySnapshot.docs.map(
-    doc => ({ ...(doc.data() as Omit<Notification, 'notificationId'>), notificationId: doc.id })
-  );
-};
+// These are wrapper functions to maintain compatibility with components that import from this file.
+// They simply call the server actions.
+export const getUsers = async () => getUsers_server();
+export const getUserById = async (userId: string) => getUserById_server(userId);
+export const getPosts = async () => getPosts_server();
+export const getNotifications = async (userId: string) => getNotifications_server(userId);
+export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected') => updateUserStatus_server(userId, status);

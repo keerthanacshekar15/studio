@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useActionState, useEffect, useState, useRef } from 'react';
@@ -36,7 +35,7 @@ export default function UserSignupPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isPending) return; // Don't run effect while form is submitting
+    if (isPending) return;
 
     if (state.success && state.newUser) {
         toast({
@@ -51,7 +50,7 @@ export default function UserSignupPage() {
         variant: 'destructive',
       });
     }
-  }, [state, toast, login, isPending]);
+  }, [state, toast, login, isPending, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,7 +58,6 @@ export default function UserSignupPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
-        // Find a random placeholder image, or default to the first one
         const randomIdImage = PlaceHolderImages.find(img => img.id.startsWith('id-card')) ?? PlaceHolderImages[0];
         setImageUrl(randomIdImage.imageUrl);
       };
