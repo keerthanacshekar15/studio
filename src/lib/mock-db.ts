@@ -2,7 +2,15 @@
 import type { User, Post, Notification } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
-// In-memory store
+// In-memory store attached to the global object to persist across hot-reloads in dev.
+// This is a common pattern for simulating a database in a Next.js development environment.
+const globalForDb = globalThis as unknown as {
+  users: User[];
+  posts: Post[];
+  notifications: Notification[];
+  notifiedUsers: Set<string>;
+};
+
 const initialUsers: User[] = [
     {
         userId: 'user-001-approved',
@@ -13,9 +21,8 @@ const initialUsers: User[] = [
         createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000, // 2 days ago
     }
 ];
-let users: User[] = [...initialUsers];
 
-let posts: Post[] = [
+const initialPosts: Post[] = [
   {
     postId: 'post-001',
     postType: 'lost',
@@ -47,7 +54,8 @@ let posts: Post[] = [
     createdAt: Date.now() - 2 * 60 * 60 * 1000,
   },
 ];
-let notifications: Notification[] = [
+
+const initialNotifications: Notification[] = [
     {
         notificationId: 'notif-001',
         userId: 'user-001-approved',
@@ -59,8 +67,12 @@ let notifications: Notification[] = [
     }
 ];
 
-// To prevent creating duplicate notifications on hot reloads
-let notifiedUsers = new Set<string>();
+// Initialize the global store only if it doesn't exist
+const users = globalForDb.users ?? (globalForDb.users = [...initialUsers]);
+const posts = globalForDb.posts ?? (globalForDb.posts = [...initialPosts]);
+const notifications = globalForDb.notifications ?? (globalForDb.notifications = [...initialNotifications]);
+const notifiedUsers = globalForDb.notifiedUsers ?? (globalForDb.notifiedUsers = new Set<string>());
+
 
 export const db = {
   // User functions
