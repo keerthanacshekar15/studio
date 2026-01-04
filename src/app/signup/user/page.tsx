@@ -10,11 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { validateUserSignup, type UserSignupState } from '@/lib/actions';
-import { createUser } from '@/lib/data';
-import { useAuth } from '@/context/auth-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import { Logo } from '@/components/Logo';
+import { useRouter } from 'next/navigation';
 
 function SubmitButton({ pending }: { pending: boolean }) {
   return (
@@ -29,39 +29,27 @@ export default function UserSignupPage() {
   const [state, formAction, isPending] = useActionState(validateUserSignup, initialState);
   const { toast } = useToast();
   const { login } = useAuth();
-  
+  const router = useRouter();
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (state.success && state.newUser) {
-      // Validation was successful, now create the user on the client
-      createUser({
-        fullName: state.newUser.fullName,
-        usn: state.newUser.usn,
-        idCardImageURL: state.newUser.idCardImageURL,
-      }).then(({ user: createdUser, isExisting }) => {
-        if (isExisting) {
-           toast({
-            title: 'Account Exists',
-            description: 'An account with this USN already exists. Please log in.',
-          });
-          login(createdUser.userId, 'user');
-        } else {
-          toast({
-            title: 'Success',
-            description: 'Signup successful! Your account is pending approval.',
-          });
-          login(createdUser.userId, 'user');
-        }
-      }).catch(err => {
-         toast({
-          title: 'Error',
-          description: 'An unexpected error occurred during user creation.',
-          variant: 'destructive',
+      if (state.isExistingUser) {
+        toast({
+          title: 'Account Exists',
+          description: 'An account with this USN already exists. Please log in.',
         });
-      });
+        router.push('/login');
+      } else {
+        toast({
+          title: 'Success',
+          description: 'Signup successful! Your account is pending approval.',
+        });
+        login(state.newUser.userId, 'user');
+      }
     } else if (!state.success && state.message) {
       toast({
         title: 'Error',
@@ -69,7 +57,7 @@ export default function UserSignupPage() {
         variant: 'destructive',
       });
     }
-  }, [state, toast, login]);
+  }, [state, toast, login, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

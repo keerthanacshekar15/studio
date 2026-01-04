@@ -6,7 +6,7 @@ import type { User } from '@/lib/types';
 import { VerificationCard } from '@/components/admin/VerificationCard';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/auth-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { LogOut } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -15,30 +15,21 @@ export default function AdminPage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const { logout, user, isLoading } = useAuth();
   
-  // This effect will now run ONLY ONCE when the component mounts.
-  // The empty dependency array [] is the key to preventing re-fetches.
   useEffect(() => {
-    const fetchUsers = async () => {
-      setIsDataLoading(true);
-      const allUsers = await getUsers();
-      setUsers(allUsers);
-      setIsDataLoading(false);
-    }
-    
-    // The check for the admin user type is still in place,
-    // but the effect itself is not dependent on the user object.
     if (user?.type === 'admin') {
+      const fetchUsers = async () => {
+        setIsDataLoading(true);
+        const allUsers = await getUsers();
+        setUsers(allUsers);
+        setIsDataLoading(false);
+      }
       fetchUsers();
     } else if (!isLoading) {
-        // If not loading and not an admin, stop the loading indicator.
         setIsDataLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // <-- EMPTY DEPENDENCY ARRAY is the critical fix.
+  }, [user, isLoading]);
   
   const handleStatusChange = (userId: string, status: 'approved' | 'rejected') => {
-    // This correctly filters the user from the local state, removing them from the UI
-    // without causing a re-fetch.
     setUsers((prevUsers) => prevUsers.filter((u) => u.userId !== userId));
   }
 

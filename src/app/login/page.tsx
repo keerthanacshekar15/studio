@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { loginUser, type LoginState } from '@/lib/actions';
-import { useAuth } from '@/context/auth-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { Logo } from '@/components/Logo';
 import { useFormStatus } from 'react-dom';
 

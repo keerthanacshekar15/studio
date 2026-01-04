@@ -2,8 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/auth-provider";
-import { Logo } from "@/components/Logo";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function PendingPage() {
   const { logout, user } = useAuth();

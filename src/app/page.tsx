@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from "next/link";
 import { ArrowRight, LogIn } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { useAuth } from "@/context/auth-provider";
+import { useAuth } from "@/hooks/use-auth";
 import { Separator } from "@/components/ui/separator";
 
 export default function Home() {

@@ -1,10 +1,13 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { User } from '@/lib/types';
 import { getUserById } from '@/lib/data';
+import { useUser as useFirebaseUser } from '@/firebase';
+import { signInAnonymously, signOut } from 'firebase/auth';
+import { useAuth as useFirebaseAuth } from '@/firebase';
+
 
 const AUTH_STORAGE_KEY = 'campusFindUser';
 
@@ -22,6 +25,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const firebaseAuth = useFirebaseAuth();
+  const { user: firebaseUser, isUserLoading: isFirebaseUserLoading } = useFirebaseUser();
+
+
+  useEffect(() => {
+    if (!firebaseUser && !isFirebaseUserLoading) {
+      signInAnonymously(firebaseAuth);
+    }
+  }, [firebaseUser, isFirebaseUserLoading, firebaseAuth]);
+
 
   useEffect(() => {
     const loadUserFromStorage = async () => {
@@ -37,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (fetchedUser) {
               setUser({ ...fetchedUser, type: 'user' });
             } else {
-              logout();
+              await logout();
             }
           }
         }
@@ -53,9 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || isFirebaseUserLoading) return;
 
-    const isAuthPage = pathname.startsWith('/signup') || pathname === '/';
+    const isAuthPage = pathname.startsWith('/signup') || pathname === '/' || pathname.startsWith('/login');
     const isAppPage = pathname.startsWith('/app') || pathname === '/pending';
 
     if (!user && isAppPage) {
@@ -73,12 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 router.replace('/pending');
             } else if (user.verificationStatus === 'approved' && (isAuthPage || pathname === '/pending')) {
                 router.replace('/app/feed');
+            } else if (user.verificationStatus === 'rejected' && isAppPage) {
+                // maybe a page for rejected users? for now, log them out.
+                logout();
             }
         }
     }
 
 
-  }, [user, isLoading, pathname, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isLoading, isFirebaseUserLoading, pathname, router]);
 
 
   const login = (id: string, type: 'user' | 'admin') => {
@@ -104,13 +121,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     setUser(null);
+    await signOut(firebaseAuth);
     router.push('/');
   };
 
-  const value = { user, login, logout, isLoading };
+  const value = { user, login, logout, isLoading: isLoading || isFirebaseUserLoading };
 
   return (
     <AuthContext.Provider value={value}>

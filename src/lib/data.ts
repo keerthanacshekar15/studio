@@ -1,189 +1,154 @@
+'use server';
 
+import {
+  collection,
+  doc,
+  addDoc,
+  setDoc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  orderBy,
+  limit,
+} from 'firebase/firestore';
+import { firestore } from '@/firebase/server-init';
 import type { User, Post, Notification } from './types';
-import { PlaceHolderImages } from './placeholder-images';
 
-const USERS_STORAGE_KEY = 'campusFindUsers';
-
-const initialUsers: User[] = [
-  {
-    userId: 'user-001-approved',
-    fullName: 'Jane Doe',
-    usn: '4VM21CS050',
-    idCardImageURL: PlaceHolderImages.find(p => p.id === 'id-card-1')?.imageUrl || '',
-    verificationStatus: 'approved',
-    createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
-  },
-  {
-    userId: 'user-002-pending',
-    fullName: 'John Smith',
-    usn: '4VM21IS025',
-    idCardImageURL: PlaceHolderImages.find(p => p.id === 'id-card-2')?.imageUrl || '',
-    verificationStatus: 'pending',
-    createdAt: Date.now() - 1 * 24 * 60 * 60 * 1000,
-  },
-  {
-    userId: 'user-003-pending',
-    fullName: 'Alex Ray',
-    usn: '4VM21EC010',
-    idCardImageURL: PlaceHolderImages.find(p => p.id === 'id-card-3')?.imageUrl || '',
-    verificationStatus: 'pending',
-    createdAt: Date.now() - 2 * 60 * 60 * 1000,
-  },
-];
-
-const getStoredUsers = (): User[] => {
-    if (typeof window === 'undefined') {
-        return initialUsers;
-    }
-    try {
-        const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-        if (storedUsers) {
-            return JSON.parse(storedUsers);
-        }
-    } catch (e) {
-        console.error("Could not parse users from localStorage", e);
-    }
-    // If nothing in localStorage, initialize it with the default users.
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initialUsers));
-    return initialUsers;
-};
-
-const setStoredUsers = (users: User[]) => {
-    if (typeof window !== 'undefined') {
-        try {
-            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-        } catch (e) {
-            console.error("Could not save users to localStorage", e);
-        }
-    }
-};
-
-
-let posts: Post[] = [
-  {
-    postId: 'post-001',
-    postType: 'lost',
-    title: 'Lost my apartment keys near library',
-    description: 'A set of three keys on a blue lanyard. One has a small bottle opener attached. Last seen near the main entrance of the library. Please contact if found!',
-    location: 'Central Library',
-    date: Date.now() - 1 * 24 * 60 * 60 * 1000,
-    itemImageURL: PlaceHolderImages.find(p => p.id === 'lost-keys')?.imageUrl,
-    postedBy: 'user-001-approved',
-    postedByName: 'Jane Doe',
-    status: 'open',
-    replyCount: 2,
-    createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
-    expiresAt: Date.now() + 28 * 24 * 60 * 60 * 1000,
-  },
-  {
-    postId: 'post-002',
-    postType: 'found',
-    title: 'Found a water bottle in the gym',
-    description: 'Found a black Hydro Flask water bottle on the basketball court. It has a few stickers on it. It is at the gym\'s front desk.',
-    location: 'University Gym',
-    date: Date.now() - 2 * 24 * 60 * 60 * 1000,
-    itemImageURL: PlaceHolderImages.find(p => p.id === 'found-bottle')?.imageUrl,
-    postedBy: 'user-001-approved',
-    postedByName: 'Jane Doe',
-    status: 'open',
-    replyCount: 0,
-    createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
-    expiresAt: Date.now() + 28 * 24 * 60 * 60 * 1000,
-  },
-    {
-    postId: 'post-003',
-    postType: 'lost',
-    title: 'Lost my wallet',
-    description: 'Black leather wallet, contained my student ID and some cash. Think I left it in the cafeteria.',
-    location: 'Cafeteria',
-    date: Date.now() - 3 * 24 * 60 * 60 * 1000,
-    itemImageURL: PlaceHolderImages.find(p => p.id === 'lost-wallet')?.imageUrl,
-    postedBy: 'user-001-approved',
-    postedByName: 'Jane Doe',
-    status: 'resolved',
-    replyCount: 1,
-    createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
-    expiresAt: Date.now() + 27 * 24 * 60 * 60 * 1000,
-  },
-];
-
-let notifications: Notification[] = [
-    {
-        notificationId: 'notif-001',
-        userId: 'user-001-approved',
-        type: 'reply',
-        content: 'Someone replied to your post "Lost my apartment keys..."',
-        link: '/app/feed/post-001',
-        createdAt: Date.now() - 1 * 60 * 60 * 1000,
-        readStatus: false,
-    },
-    {
-        notificationId: 'notif-002',
-        userId: 'user-001-approved',
-        type: 'message',
-        content: 'You have a new message regarding "Lost my wallet"',
-        link: '/app/messages/chat-001',
-        createdAt: Date.now() - 5 * 60 * 60 * 1000,
-        readStatus: true,
-    }
-]
+const USERS_COLLECTION = 'users';
+const POSTS_COLLECTION = 'posts';
+const NOTIFICATIONS_COLLECTION = 'notifications';
 
 export const getUsers = async (): Promise<User[]> => {
-  return Promise.resolve(getStoredUsers().sort((a, b) => b.createdAt - a.createdAt));
+  const usersRef = collection(firestore, USERS_COLLECTION);
+  const q = query(usersRef, orderBy('createdAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ ...doc.data(), userId: doc.id } as User));
 };
 
-export const getUserById = async (userId: string): Promise<User | undefined> => {
-  const users = getStoredUsers();
-  const user = users.find(user => user.userId === userId);
-  return Promise.resolve(user ? {...user} : undefined);
+export const getUserById = async (
+  userId: string
+): Promise<User | undefined> => {
+  const userRef = doc(firestore, USERS_COLLECTION, userId);
+  const userSnap = await getDoc(userRef);
+  if (userSnap.exists()) {
+    return { ...userSnap.data(), userId: userSnap.id } as User;
+  }
+  return undefined;
 };
 
-export const getUserByCredentials = async (fullName: string, usn: string): Promise<User | undefined> => {
-    const users = getStoredUsers();
-    const user = users.find(u => u.fullName === fullName && u.usn === usn);
-    return Promise.resolve(user);
-}
+export const getUserByCredentials = async (
+  fullName: string,
+  usn: string
+): Promise<User | undefined> => {
+  const usersRef = collection(firestore, USERS_COLLECTION);
+  const q = query(
+    usersRef,
+    where('fullName', '==', fullName),
+    where('usn', '==', usn),
+    limit(1)
+  );
+  const querySnapshot = await getDocs(q);
+  if (!querySnapshot.empty) {
+    const userDoc = querySnapshot.docs[0];
+    return { ...userDoc.data(), userId: userDoc.id } as User;
+  }
+  return undefined;
+};
 
-export type CreateUserDTO = Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>;
+export type CreateUserDTO = Omit<
+  User,
+  'userId' | 'createdAt' | 'verificationStatus'
+>;
 
-export const createUser = async (userData: CreateUserDTO): Promise<{ user: User, isExisting: boolean }> => {
-  const users = getStoredUsers();
-  const existingUser = users.find(u => u.usn === userData.usn);
+export const createUser = async (
+  userData: CreateUserDTO
+): Promise<{ user: User; isExisting: boolean }> => {
+  const usersRef = collection(firestore, USERS_COLLECTION);
+  const q = query(usersRef, where('usn', '==', userData.usn), limit(1));
+  const querySnapshot = await getDocs(q);
 
-  if (existingUser) {
-    return { user: { ...existingUser }, isExisting: true };
+  if (!querySnapshot.empty) {
+    const existingUserDoc = querySnapshot.docs[0];
+    return {
+      user: { ...existingUserDoc.data(), userId: existingUserDoc.id } as User,
+      isExisting: true,
+    };
   }
 
+  const newUserRef = doc(collection(firestore, USERS_COLLECTION));
   const newUser: User = {
     ...userData,
-    userId: `user-${Date.now()}`,
+    userId: newUserRef.id,
     createdAt: Date.now(),
     verificationStatus: 'pending',
   };
-  const updatedUsers = [...users, newUser];
-  setStoredUsers(updatedUsers);
-  return Promise.resolve({ user: { ...newUser }, isExisting: false });
+
+  await setDoc(newUserRef, newUser);
+
+  return { user: newUser, isExisting: false };
 };
 
-export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected'): Promise<User | undefined> => {
-  const users = getStoredUsers();
-  const userIndex = users.findIndex(user => user.userId === userId);
-  if (userIndex !== -1) {
-    users[userIndex].verificationStatus = status;
-    setStoredUsers(users);
-    return Promise.resolve({...users[userIndex]});
-  }
-  return Promise.resolve(undefined);
+export const updateUserStatus = async (
+  userId: string,
+  status: 'approved' | 'rejected'
+): Promise<User | undefined> => {
+  const userRef = doc(firestore, USERS_COLLECTION, userId);
+  await updateDoc(userRef, { verificationStatus: status });
+  // After updating, send a notification
+  const notificationRef = collection(firestore, USERS_COLLECTION, userId, NOTIFICATIONS_COLLECTION);
+  await addDoc(notificationRef, {
+      type: status === 'approved' ? 'approval' : 'rejection',
+      content: `Your account has been ${status}.`,
+      createdAt: Date.now(),
+      readStatus: false,
+      link: status === 'approved' ? '/app/feed' : '/'
+  });
+
+  return getUserById(userId);
 };
 
 export const getPosts = async (): Promise<Post[]> => {
-  return Promise.resolve(posts
-    .filter(post => post.expiresAt > Date.now())
-    .sort((a, b) => b.createdAt - a.createdAt));
+  const postsRef = collection(firestore, POSTS_COLLECTION);
+  const q = query(
+    postsRef,
+    orderBy('createdAt', 'desc')
+  );
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(
+    doc => ({ ...doc.data(), postId: doc.id } as Post)
+  ).filter(post => post.expiresAt > Date.now());
 };
 
-export const getNotifications = async (userId: string): Promise<Notification[]> => {
-    return Promise.resolve(notifications
-        .filter(n => n.userId === userId)
-        .sort((a, b) => b.createdAt - a.createdAt));
-}
+export const createPost = async (
+  postData: Omit<
+    Post,
+    'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'
+  >
+) => {
+  const newPost: Omit<Post, 'postId'> = {
+    ...postData,
+    status: 'open',
+    replyCount: 0,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+  };
+  await addDoc(collection(firestore, POSTS_COLLECTION), newPost);
+};
+
+export const getNotifications = async (
+  userId: string
+): Promise<Notification[]> => {
+  const notificationsRef = collection(
+    firestore,
+    USERS_COLLECTION,
+    userId,
+    NOTIFICATIONS_COLLECTION
+  );
+  const q = query(notificationsRef, orderBy('createdAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(
+    doc => ({ ...doc.data(), notificationId: doc.id } as Notification)
+  );
+};

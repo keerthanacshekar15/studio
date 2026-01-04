@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { adminSignup, type AdminSignupState } from '@/lib/actions';
-import { useAuth } from '@/context/auth-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { Logo } from '@/components/Logo';
 
 function SubmitButton() {
