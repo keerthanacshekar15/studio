@@ -23,7 +23,8 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (user?.type === 'admin') {
+    // We need to ensure this runs only on the client
+    if (typeof window !== 'undefined' && user?.type === 'admin') {
       fetchUsers();
     }
   }, [user]);

@@ -1,9 +1,11 @@
+
+'use client';
 import type { User, Post, Notification } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
 // --- MOCK DATABASE ---
 
-let users: User[] = [
+const initialUsers: User[] = [
   {
     userId: 'user-001-approved',
     fullName: 'Jane Doe',
@@ -29,6 +31,33 @@ let users: User[] = [
     createdAt: Date.now() - 2 * 60 * 60 * 1000,
   },
 ];
+
+const getStoredUsers = (): User[] => {
+  if (typeof window === 'undefined') {
+    return initialUsers;
+  }
+  try {
+    const stored = localStorage.getItem('mock-users');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error("Failed to parse users from localStorage", e);
+  }
+  return initialUsers;
+};
+
+const setStoredUsers = (users: User[]) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  try {
+    localStorage.setItem('mock-users', JSON.stringify(users));
+  } catch (e) {
+    console.error("Failed to save users to localStorage", e);
+  }
+};
+
 
 let posts: Post[] = [
   {
@@ -102,28 +131,34 @@ let notifications: Notification[] = [
 // --- MOCK API FUNCTIONS ---
 
 export const getUsers = async (): Promise<User[]> => {
+  const users = getStoredUsers();
   return users.sort((a, b) => b.createdAt - a.createdAt);
 };
 
 export const getUserById = async (userId: string): Promise<User | undefined> => {
+  const users = getStoredUsers();
   return users.find(user => user.userId === userId);
 };
 
 export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>): Promise<User> => {
+  const users = getStoredUsers();
   const newUser: User = {
     ...userData,
     userId: `user-${Date.now()}`,
     createdAt: Date.now(),
     verificationStatus: 'pending',
   };
-  users.push(newUser);
+  const updatedUsers = [...users, newUser];
+  setStoredUsers(updatedUsers);
   return newUser;
 };
 
 export const updateUserStatus = async (userId: string, status: 'approved' | 'rejected'): Promise<User | undefined> => {
+  const users = getStoredUsers();
   const userIndex = users.findIndex(user => user.userId === userId);
   if (userIndex !== -1) {
     users[userIndex].verificationStatus = status;
+    setStoredUsers(users);
     return users[userIndex];
   }
   return undefined;
