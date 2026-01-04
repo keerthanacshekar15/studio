@@ -20,15 +20,16 @@ export const getUserByCredentials = async (
   usn: string
 ): Promise<User | undefined> => {
   // Simulate finding a user by their credentials, allowing login only for existing users.
+  // The credentials MUST be an exact match.
   const users = await db.getUsers();
-  // In a real app, this would be a unique email or username.
-  const matchedUser = users.find(u => u.fullName === fullName && u.usn === usn);
+  const matchedUser = users.find(u => u.fullName.toLowerCase() === fullName.toLowerCase() && u.usn.toLowerCase() === usn.toLowerCase());
   return matchedUser;
 };
 
 export const createUser = async (
   userData: CreateUserDTO
 ): Promise<{ user: User; isExisting: boolean }> => {
+  // Check for an existing user by USN, which should be unique.
   const existingUser = await db.getUserByUsn(userData.usn);
   if (existingUser) {
     // If the user exists, return them without creating a new one.
