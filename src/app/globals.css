@@ -14,7 +14,7 @@ body {
     --card-foreground: 265 56% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 265 56% 10%;
-    --primary: 43 29% 37%;
+    --primary: 218 100% 16%;
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 265 56% 10%;
@@ -26,8 +26,8 @@ body {
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
-    --ring: 43 29% 37%;
-    --chart-1: 43 29% 37%;
+    --ring: 218 100% 16%;
+    --chart-1: 218 100% 16%;
     --chart-2: 319 9% 37%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
