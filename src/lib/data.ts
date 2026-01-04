@@ -34,7 +34,9 @@ const initialUsers: User[] = [
 
 const getStoredUsers = (): User[] => {
   if (typeof window === 'undefined') {
-    return initialUsers;
+    // On the server, we can't access localStorage.
+    // Return a copy of the initial users.
+    return [...initialUsers];
   }
   try {
     const stored = localStorage.getItem('mock-users');
@@ -43,19 +45,19 @@ const getStoredUsers = (): User[] => {
     } else {
       // If nothing is in localStorage, initialize it with the default users
       localStorage.setItem('mock-users', JSON.stringify(initialUsers));
-      return initialUsers;
+      return [...initialUsers];
     }
   } catch (e) {
     console.error("Failed to parse users from localStorage", e);
-    return initialUsers; // Fallback to initial data
+    return [...initialUsers]; // Fallback to initial data
   }
 };
 
 const setStoredUsers = (users: User[]) => {
   if (typeof window === 'undefined') {
     // If on the server, we can't use localStorage.
-    // This is a limitation of this mock data setup.
-    // The data will be "saved" on the client side when it's next read.
+    // The data will be saved on the client side next time it's read.
+    console.warn("Attempted to set users on the server. Data will not be persisted until client-side interaction.");
     return;
   }
   try {
@@ -150,9 +152,6 @@ export const getUserById = async (userId: string): Promise<User | undefined> => 
 };
 
 export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>): Promise<User> => {
-  // This function can now be called from the server.
-  // It fetches the current list (which might just be the initial list if on server)
-  // and adds the new user.
   const users = getStoredUsers();
   const newUser: User = {
     ...userData,
@@ -160,6 +159,8 @@ export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | '
     createdAt: Date.now(),
     verificationStatus: 'pending',
   };
+  
+  // This is the critical part. We add the new user to the list we just fetched.
   const updatedUsers = [...users, newUser];
   
   // setStoredUsers will only work on the client, but it's safe to call.
