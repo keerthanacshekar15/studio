@@ -34,6 +34,7 @@ export type Post = {
 export type Reply = {
   replyId: string;
   postId: string;
+  parentReplyId?: string | null; // For nested replies
   repliedBy: string; // userId
   repliedByName: string;
   message: string;

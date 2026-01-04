@@ -10,35 +10,86 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDistanceToNow } from 'date-fns';
-import { Send, ArrowLeft, MessageSquare } from 'lucide-react';
+import { Send, ArrowLeft, MessageSquare, Reply as ReplyIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
-function ReplyForm({ postId, user, onReplyAdded }: { postId: string, user: User, onReplyAdded: (newReply: Reply) => void }) {
+function ReplyForm({ postId, user, onReplyAdded, parentReplyId, onCancel }: { postId: string, user: User, onReplyAdded: (newReply: Reply) => void, parentReplyId?: string | null, onCancel?: () => void }) {
     const [message, setMessage] = useState('');
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!message.trim()) return;
-        const newReply = await addReplyToServer(postId, message, user);
+        const newReply = await addReplyToServer(postId, message, user, parentReplyId);
         onReplyAdded(newReply);
         setMessage('');
+        if(onCancel) onCancel();
     };
 
     return (
-        <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2 mt-2">
             <Textarea
                 placeholder="Write a reply..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="flex-1"
-                rows={1}
+                rows={2}
+                autoFocus={!!parentReplyId}
             />
-            <Button type="submit" size="icon">
-                <Send className="h-4 w-4" />
-            </Button>
+            <div className='flex justify-end gap-2'>
+                {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
+                <Button type="submit" size="sm">
+                    <Send className="h-4 w-4 mr-2" />
+                    Submit Reply
+                </Button>
+            </div>
         </form>
     );
+}
+
+function ReplyCard({ reply, allReplies, user, onReplyAdded }: { reply: Reply, allReplies: Reply[], user: User | null, onReplyAdded: (reply: Reply) => void }) {
+    const [showReplyForm, setShowReplyForm] = useState(false);
+    
+    const childReplies = allReplies.filter(r => r.parentReplyId === reply.replyId);
+
+    return (
+        <div className="flex flex-col">
+            <div className="flex gap-3">
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 text-sm">
+                        <span className="font-semibold">{reply.repliedByName}</span>
+                        <span className="text-muted-foreground text-xs">
+                            {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                        </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{reply.message}</p>
+                    {user && user.type === 'user' && (
+                        <Button variant="ghost" size="sm" className="mt-1 -ml-2" onClick={() => setShowReplyForm(!showReplyForm)}>
+                            <ReplyIcon className="h-3 w-3 mr-1" />
+                            Reply
+                        </Button>
+                    )}
+                </div>
+            </div>
+            
+            <div className="pl-6 border-l ml-3">
+                 {showReplyForm && user && user.type === 'user' && (
+                    <ReplyForm 
+                        postId={reply.postId} 
+                        user={user} 
+                        parentReplyId={reply.replyId} 
+                        onReplyAdded={onReplyAdded}
+                        onCancel={() => setShowReplyForm(false)}
+                    />
+                 )}
+                 {childReplies.map(child => (
+                    <div key={child.replyId} className="mt-4">
+                        <ReplyCard reply={child} allReplies={allReplies} user={user} onReplyAdded={onReplyAdded} />
+                    </div>
+                 ))}
+            </div>
+        </div>
+    )
 }
 
 export default function PostDetailsPage({ params }: { params: { postId: string } }) {
@@ -58,10 +109,11 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
     const handleReplyAdded = (newReply: Reply) => {
         setData(prevData => {
             if (!prevData) return null;
+            const newReplies = [...prevData.replies, newReply];
             return {
                 ...prevData,
-                replies: [...prevData.replies, newReply],
-                post: { ...prevData.post, replyCount: prevData.post.replyCount + 1 }
+                replies: newReplies,
+                post: { ...prevData.post, replyCount: newReplies.length }
             }
         });
     }
@@ -81,6 +133,7 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
     }
 
     const { post, replies } = data;
+    const topLevelReplies = replies.filter(r => !r.parentReplyId);
 
     return (
         <div className="container mx-auto max-w-2xl px-4 py-6">
@@ -104,27 +157,22 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
                 </CardHeader>
                 <CardContent>
                     {replies.length > 0 ? (
-                        <div className="space-y-4">
-                            {replies.map(reply => (
-                                <div key={reply.replyId} className="flex gap-3">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <span className="font-semibold">{reply.repliedByName}</span>
-                                            <span className="text-muted-foreground text-xs">
-                                                {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">{reply.message}</p>
-                                    </div>
-                                </div>
+                        <div className="space-y-6">
+                            {topLevelReplies.map(reply => (
+                                <ReplyCard key={reply.replyId} reply={reply} allReplies={replies} user={user} onReplyAdded={handleReplyAdded} />
                             ))}
                         </div>
                     ) : (
                         <p className="text-sm text-muted-foreground">No replies yet. Be the first to reply!</p>
                     )}
-                    {user && user.type === 'user' && (
-                       <ReplyForm postId={post.postId} user={user} onReplyAdded={handleReplyAdded} />
-                    )}
+                    <div className="mt-6 pt-6 border-t">
+                        <h3 className="text-md font-semibold">Leave a Reply</h3>
+                        {user && user.type === 'user' ? (
+                           <ReplyForm postId={post.postId} user={user} onReplyAdded={handleReplyAdded} />
+                        ) : (
+                            <p className="text-sm text-muted-foreground mt-2">You must be logged in to reply.</p>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
         </div>
