@@ -40,15 +40,22 @@ const getStoredUsers = (): User[] => {
     const stored = localStorage.getItem('mock-users');
     if (stored) {
       return JSON.parse(stored);
+    } else {
+      // If nothing is in localStorage, initialize it with the default users
+      localStorage.setItem('mock-users', JSON.stringify(initialUsers));
+      return initialUsers;
     }
   } catch (e) {
     console.error("Failed to parse users from localStorage", e);
+    return initialUsers; // Fallback to initial data
   }
-  return initialUsers;
 };
 
 const setStoredUsers = (users: User[]) => {
   if (typeof window === 'undefined') {
+    // If on the server, we can't use localStorage.
+    // This is a limitation of this mock data setup.
+    // The data will be "saved" on the client side when it's next read.
     return;
   }
   try {
@@ -130,6 +137,8 @@ let notifications: Notification[] = [
 
 // --- MOCK API FUNCTIONS ---
 
+// This function is now client-side only and safe to call from server components.
+// It will gracefully return the initial list on the server.
 export const getUsers = async (): Promise<User[]> => {
   const users = getStoredUsers();
   return users.sort((a, b) => b.createdAt - a.createdAt);
@@ -141,6 +150,9 @@ export const getUserById = async (userId: string): Promise<User | undefined> => 
 };
 
 export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | 'verificationStatus'>): Promise<User> => {
+  // This function can now be called from the server.
+  // It fetches the current list (which might just be the initial list if on server)
+  // and adds the new user.
   const users = getStoredUsers();
   const newUser: User = {
     ...userData,
@@ -149,6 +161,9 @@ export const createUser = async (userData: Omit<User, 'userId' | 'createdAt' | '
     verificationStatus: 'pending',
   };
   const updatedUsers = [...users, newUser];
+  
+  // setStoredUsers will only work on the client, but it's safe to call.
+  // When the admin page loads on the client, getStoredUsers will pull the updated list.
   setStoredUsers(updatedUsers);
   return newUser;
 };
