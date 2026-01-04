@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -80,9 +81,8 @@ export async function validateUserSignup(
     if (isExisting) {
       return {
         message: 'An account with this USN already exists. Please log in.',
-        success: true,
+        success: false, // Set to false to prevent redirection logic
         isExistingUser: true,
-        newUser: createdUser,
       };
     }
 
@@ -144,6 +144,12 @@ export async function loginUser(
     const existingUser = await getUserByCredentials(fullName, usn);
 
     if (existingUser) {
+       if (existingUser.verificationStatus !== 'approved') {
+        return {
+          message: 'Your account is not approved yet. Please wait for an admin to verify your account.',
+          success: false,
+        };
+      }
       return {
         message: 'Login successful!',
         success: true,

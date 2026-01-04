@@ -11,22 +11,6 @@ const initialUsers: User[] = [
         idCardImageURL: PlaceHolderImages.find(img => img.id === 'id-card-1')!.imageUrl,
         verificationStatus: 'approved',
         createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000, // 2 days ago
-    },
-    {
-        userId: 'user-002-pending',
-        fullName: 'John Smith (Pending)',
-        usn: '4VM21CS002',
-        idCardImageURL: PlaceHolderImages.find(img => img.id === 'id-card-2')!.imageUrl,
-        verificationStatus: 'pending',
-        createdAt: Date.now() - 1 * 24 * 60 * 60 * 1000, // 1 day ago
-    },
-     {
-        userId: 'user-003-rejected',
-        fullName: 'Peter Jones (Rejected)',
-        usn: '4VM21CS003',
-        idCardImageURL: PlaceHolderImages.find(img => img.id === 'id-card-3')!.imageUrl,
-        verificationStatus: 'rejected',
-        createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000, // 3 days ago
     }
 ];
 let users: User[] = [...initialUsers];
@@ -83,7 +67,7 @@ export const db = {
   getUsers: async (): Promise<User[]> => [...users],
   getUserById: async (userId: string): Promise<User | undefined> => users.find(u => u.userId === userId),
   getUserByUsn: async (usn: string): Promise<User | undefined> => users.find(u => u.usn === usn),
-  getUserByCredentials: async (fullName: string, usn: string): Promise<User | undefined> => users.find(u => u.fullName === fullName && u.usn === usn),
+  getUserByCredentials: async (fullName: string, usn: string): Promise<User | undefined> => users.find(u => u.fullName.toLowerCase() === fullName.toLowerCase() && u.usn.toLowerCase() === usn.toLowerCase()),
   addUser: (user: User) => {
     const exists = users.some(u => u.usn === user.usn);
     if (!exists) {
