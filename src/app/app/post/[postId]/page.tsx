@@ -104,7 +104,7 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
                 setIsLoading(false);
             });
         }
-    }, [params]);
+    }, [params.postId]);
     
     const handleReplyAdded = (newReply: Reply) => {
         setData(prevData => {
