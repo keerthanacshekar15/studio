@@ -15,7 +15,7 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <Card className="overflow-hidden">
-      {post.itemImageURL && (
+      {post.itemImageURL && post.itemImageURL.trim() !== '' && (
         <div className="aspect-video relative w-full overflow-hidden">
           <Image
             src={post.itemImageURL}
