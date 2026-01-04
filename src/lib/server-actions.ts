@@ -89,6 +89,10 @@ export const getPostWithReplies = async (postId: string): Promise<{ post: Post; 
     return { post, replies };
 }
 
+export const deletePost = async (postId: string): Promise<void> => {
+    return db.deletePost(postId);
+};
+
 export const addReplyToServer = async (postId: string, message: string, user: User, parentReplyId?: string | null): Promise<Reply> => {
     const newReply: Reply = {
         replyId: `reply-${Date.now()}`,

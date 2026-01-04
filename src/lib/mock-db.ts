@@ -91,10 +91,10 @@ const initialNotifications: Notification[] = [
 ];
 
 // Initialize the global store only if it doesn't exist
-const users = globalForDb.users ?? (globalForDb.users = [...initialUsers]);
-const posts = globalForDb.posts ?? (globalForDb.posts = [...initialPosts]);
-const replies = globalForDb.replies ?? (globalForDb.replies = [...initialReplies]);
-const chats = globalForDb.chats ?? (globalForDb.chats = [...initialChats]);
+let users = globalForDb.users ?? (globalForDb.users = [...initialUsers]);
+let posts = globalForDb.posts ?? (globalForDb.posts = [...initialPosts]);
+let replies = globalForDb.replies ?? (globalForDb.replies = [...initialReplies]);
+let chats = globalForDb.chats ?? (globalForDb.chats = [...initialChats]);
 const notifications = globalForDb.notifications ?? (globalForDb.notifications = [...initialNotifications]);
 const notifiedUsers = globalForDb.notifiedUsers ?? (globalForDb.notifiedUsers = new Set<string>());
 
@@ -122,6 +122,16 @@ export const db = {
   getPostById: async (postId: string): Promise<Post | undefined> => posts.find(p => p.postId === postId),
   addPost: (post: Post) => {
     posts.unshift(post);
+  },
+  deletePost: async (postId: string): Promise<void> => {
+    const postIndex = posts.findIndex(p => p.postId === postId);
+    if (postIndex > -1) {
+        posts.splice(postIndex, 1);
+    }
+    // Also delete associated replies
+    replies = replies.filter(r => r.postId !== postId);
+    // Also delete associated chats
+    chats = chats.filter(c => c.postId !== postId);
   },
   
   // Reply functions

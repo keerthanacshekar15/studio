@@ -4,15 +4,18 @@
 import { useEffect, useState, use } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Post, Reply, User } from '@/lib/types';
-import { addReplyToServer, getPostWithReplies } from '@/lib/server-actions';
+import { addReplyToServer, getPostWithReplies, deletePost } from '@/lib/server-actions';
 import { PostCard } from '@/components/app/PostCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDistanceToNow } from 'date-fns';
-import { Send, ArrowLeft, Reply as ReplyIcon } from 'lucide-react';
+import { Send, ArrowLeft, Reply as ReplyIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 function ReplyForm({ postId, user, onReplyAdded, parentReplyId, onCancel }: { postId: string, user: User, onReplyAdded: (newReply: Reply) => void, parentReplyId?: string | null, onCancel?: () => void }) {
     const [message, setMessage] = useState('');
@@ -92,6 +95,42 @@ function ReplyCard({ reply, allReplies, user, onReplyAdded }: { reply: Reply, al
     )
 }
 
+function DeletePostButton({ postId }: { postId: string }) {
+    const router = useRouter();
+    const { toast } = useToast();
+
+    const handleDelete = async () => {
+        await deletePost(postId);
+        toast({ title: 'Post Deleted', description: 'Your post has been successfully removed.' });
+        router.push('/app/feed');
+        router.refresh();
+    }
+
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon">
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your post
+                        and remove its data from our servers.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+
 export default function PostDetailsPage({ params }: { params: { postId: string } }) {
     const { postId } = use(params);
     const { user, isLoading: isAuthLoading } = useAuth();
@@ -136,11 +175,16 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
     const { post, replies } = data;
     const topLevelReplies = replies.filter(r => !r.parentReplyId);
 
+    const isOwner = user?.type === 'user' && user.userId === post.postedBy;
+
     return (
         <div className="container mx-auto max-w-2xl px-4 py-6">
-            <Button asChild variant="ghost" className="mb-4">
-              <Link href="/app/feed"><ArrowLeft />Back to Feed</Link>
-            </Button>
+            <div className="flex justify-between items-center mb-4">
+                <Button asChild variant="ghost">
+                  <Link href="/app/feed"><ArrowLeft />Back to Feed</Link>
+                </Button>
+                {isOwner && <DeletePostButton postId={post.postId} />}
+            </div>
 
             <PostCard post={post} />
 
