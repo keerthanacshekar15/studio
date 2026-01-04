@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { validateUserSignup, type UserSignupState } from '@/lib/actions';
 import { useAuth } from '@/hooks/use-auth';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import { Logo } from '@/components/Logo';
 import { useRouter } from 'next/navigation';
@@ -50,7 +49,6 @@ export default function UserSignupPage() {
         variant: 'destructive',
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, isPending]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,9 +56,9 @@ export default function UserSignupPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        const randomIdImage = PlaceHolderImages.find(img => img.id.startsWith('id-card')) ?? PlaceHolderImages[0];
-        setImageUrl(randomIdImage.imageUrl);
+        const dataUri = reader.result as string;
+        setImagePreview(dataUri);
+        setImageUrl(dataUri);
       };
       reader.readAsDataURL(file);
     }

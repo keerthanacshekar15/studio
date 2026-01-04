@@ -30,24 +30,8 @@ export function VerificationCard({ user, onStatusChange }: VerificationCardProps
     setAiError(null);
     setAiResult(null);
 
-    // This is a mock conversion. In a real scenario, you'd have the base64 string from upload.
-    // For now, we simulate by fetching the image and converting it.
-    // This is not ideal but works for demonstration with placeholder URLs.
-    // A proper implementation would store the base64 on signup or use a server-side fetch.
-    let idCardImageAsDataUri = user.idCardImageURL;
-    if (!user.idCardImageURL.startsWith('data:')) {
-        // Since we can't fetch cross-origin in a server action directly from a browser-like context
-        // and this is a mock, we will send the URL and assume the server can fetch it.
-        // For the GenAI call, it's better to convert to Base64 on the client when uploaded.
-        // Here we'll just pretend the URL works for the sake of the demo.
-        // The flow expects a data URI, so this will likely fail with picsum URLs
-        // but it demonstrates the wiring.
-        console.warn("Cannot convert remote URL to data URI on client due to CORS. Sending URL directly. This may fail in the AI flow if it doesn't handle remote URLs.");
-    }
-
-
     const result = await runIdVerification({
-      idCardImage: user.idCardImageURL, // Sending URL, see warning above
+      idCardImage: user.idCardImageURL,
       fullName: user.fullName,
       usn: user.usn,
     });

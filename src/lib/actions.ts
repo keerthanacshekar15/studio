@@ -36,7 +36,7 @@ export async function adminSignup(
 const UserSignupSchema = z.object({
   fullName: z.string().min(3, 'Full name must be at least 3 characters.'),
   usn: z.string().regex(/^4VM/, 'USN must start with "4VM".'),
-  idCardImageURL: z.string().url('A valid image URL is required.'),
+  idCardImageURL: z.string().min(1, 'Please upload an ID card image.'),
 });
 
 export type UserSignupState = {
@@ -145,10 +145,13 @@ export async function loginUser(
 
     if (existingUser) {
        if (existingUser.verificationStatus !== 'approved') {
+        // If user is not approved, we still return the user object
+        // The UI/auth context will handle redirecting to the 'pending' page
         return {
-          message: 'Your account is not approved yet. Please wait for an admin to verify your account.',
-          success: false,
-        };
+            message: 'Login successful, but account is pending.',
+            success: true,
+            user: existingUser,
+        }
       }
       return {
         message: 'Login successful!',
