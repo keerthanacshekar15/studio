@@ -47,9 +47,8 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const { postId } = params;
-        if (postId) {
-            getPostWithReplies(postId).then(result => {
+        if (params.postId) {
+            getPostWithReplies(params.postId).then(result => {
                 setData(result);
                 setIsLoading(false);
             });
