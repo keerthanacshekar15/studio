@@ -19,7 +19,6 @@ export const getUserByCredentials = async (
   fullName: string,
   usn: string
 ): Promise<User | undefined> => {
-  // Simulate finding a user by their credentials, allowing login only for existing users.
   const users = await db.getUsers();
   return users.find(u => u.fullName.toLowerCase() === fullName.toLowerCase() && u.usn.toLowerCase() === usn.toLowerCase());
 };
@@ -27,10 +26,8 @@ export const getUserByCredentials = async (
 export const createUser = async (
   userData: CreateUserDTO
 ): Promise<{ user: User; isExisting: boolean }> => {
-  // Check for an existing user by USN, which should be unique.
   const existingUser = await db.getUserByUsn(userData.usn);
   if (existingUser) {
-    // If the user exists, return them without creating a new one.
     return { user: existingUser, isExisting: true };
   }
 
@@ -82,7 +79,8 @@ export const updateUserStatus = async (
 
 
 export const getPosts = async (): Promise<Post[]> => {
-  return db.getPosts();
+    // Simply return the posts from the database.
+    return db.getPosts();
 };
 
 export const createPost = async (
