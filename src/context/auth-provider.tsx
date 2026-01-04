@@ -1,4 +1,5 @@
-"use client";
+
+'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -36,7 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (fetchedUser) {
               setUser({ ...fetchedUser, type: 'user' });
             } else {
-              // If user is not found, treat as logged out
               logout();
             }
           }
@@ -56,25 +56,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLoading) return;
 
     const isAuthPage = pathname.startsWith('/signup') || pathname === '/';
-    const isAppPage = pathname.startsWith('/app') || pathname.startsWith('/pending');
+    const isAppPage = pathname.startsWith('/app') || pathname === '/pending';
+
+    if (!user && isAppPage) {
+        router.replace('/');
+        return;
+    }
 
     if (user) {
-      if (user.type === 'user') {
-        if (user.verificationStatus === 'pending' && pathname !== '/pending') {
-          router.replace('/pending');
-        } else if (user.verificationStatus === 'approved' && (isAuthPage || pathname === '/pending')) {
-          router.replace('/app/feed');
+        if (user.type === 'admin') {
+            if (pathname !== '/app/admin') {
+                router.replace('/app/admin');
+            }
+        } else if (user.type === 'user') {
+            if (user.verificationStatus === 'pending' && pathname !== '/pending') {
+                router.replace('/pending');
+            } else if (user.verificationStatus === 'approved' && (isAuthPage || pathname === '/pending')) {
+                router.replace('/app/feed');
+            }
         }
-      } else if (user.type === 'admin') {
-        if (isAuthPage || pathname !== '/app/admin' && pathname.startsWith('/app')) {
-           if(pathname !== '/app/admin') router.replace('/app/admin');
-        }
-      }
-    } else {
-      if (isAppPage) {
-        router.replace('/');
-      }
     }
+
+
   }, [user, isLoading, pathname, router]);
 
 

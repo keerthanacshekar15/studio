@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { getPendingUsers } from '@/lib/data';
@@ -12,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function AdminPage() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
-  const { logout, user, isLoading: isAuthLoading } = useAuth();
+  const { logout, user, isLoading } = useAuth();
   
   useEffect(() => {
     if (user?.type === 'admin') {
@@ -29,7 +30,7 @@ export default function AdminPage() {
     setPendingUsers(prevUsers => prevUsers.filter(u => u.userId !== userId));
   }
 
-  if (isAuthLoading) {
+  if (isLoading) {
       return (
           <div className="flex h-screen items-center justify-center">
               <p>Loading admin dashboard...</p>
