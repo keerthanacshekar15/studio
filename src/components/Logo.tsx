@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { Sparkles } from "lucide-react";
 
 const CustomLogoIcon = ({ className }: { className?: string }) => (
     <svg
@@ -13,23 +12,20 @@ const CustomLogoIcon = ({ className }: { className?: string }) => (
       className={cn("h-8 w-8", className)}
     >
       {/* Magnifying glass */}
-      <circle cx="11" cy="11" r="8"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      <circle cx="10" cy="10" r="7"></circle>
+      <line x1="15" y1="15" x2="20" y2="20"></line>
       
-      {/* Building inside */}
-      <path d="M9 14v-4h4v4"></path>
-      <path d="M9 14l2-2l2 2"></path>
-      <path d="M12 10V8"></path>
+      {/* Larger Building inside */}
+      <path d="M7 13v-3h6v3"></path>
+      <path d="M7 13l3-3l3 3"></path>
+      <path d="M10 10V8"></path>
     </svg>
   );
 
 export function Logo({ className, textClassName }: { className?: string; textClassName?: string }) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="relative">
-        <Sparkles className="absolute -top-1 -left-1 h-4 w-4 text-accent" />
-        <CustomLogoIcon className="text-primary" />
-      </div>
+      <CustomLogoIcon className="text-primary" />
       <span className={cn("text-2xl font-bold tracking-tight text-foreground", textClassName)}>
         CampusFind
       </span>
