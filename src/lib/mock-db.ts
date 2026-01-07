@@ -10,13 +10,14 @@ const globalForDb = globalThis as unknown as {
   notifications: Notification[];
   replies: Reply[];
   chats: Chat[];
+  messages: Message[];
   notifiedUsers: Set<string>;
 };
 
 const initialUsers: User[] = [
     {
         userId: 'user-001-approved',
-        fullName: 'Jane Doe (Approved)',
+        fullName: 'Jane Doe',
         usn: '4VM21CS001',
         idCardImageURL: PlaceHolderImages.find(img => img.id === 'id-card-1')!.imageUrl,
         verificationStatus: 'approved',
@@ -78,6 +79,7 @@ const initialReplies: Reply[] = [
 ];
 
 const initialChats: Chat[] = [];
+const initialMessages: Message[] = [];
 const initialNotifications: Notification[] = [
     {
         notificationId: 'notif-001',
@@ -91,10 +93,11 @@ const initialNotifications: Notification[] = [
 ];
 
 // Initialize the global store only if it doesn't exist
-let users = globalForDb.users ?? (globalForDb.users = [...initialUsers]);
-let posts = globalForDb.posts ?? (globalForDb.posts = [...initialPosts]);
-let replies = globalForDb.replies ?? (globalForDb.replies = [...initialReplies]);
-let chats = globalForDb.chats ?? (globalForDb.chats = [...initialChats]);
+const users = globalForDb.users ?? (globalForDb.users = [...initialUsers]);
+const posts = globalForDb.posts ?? (globalForDb.posts = [...initialPosts]);
+const replies = globalForDb.replies ?? (globalForDb.replies = [...initialReplies]);
+const chats = globalForDb.chats ?? (globalForDb.chats = [...initialChats]);
+const messages = globalForDb.messages ?? (globalForDb.messages = [...initialMessages]);
 const notifications = globalForDb.notifications ?? (globalForDb.notifications = [...initialNotifications]);
 const notifiedUsers = globalForDb.notifiedUsers ?? (globalForDb.notifiedUsers = new Set<string>());
 
@@ -104,9 +107,9 @@ export const db = {
   getUsers: async (): Promise<User[]> => [...users],
   getUserById: async (userId: string): Promise<User | undefined> => users.find(u => u.userId === userId),
   getUserByUsn: async (usn: string): Promise<User | undefined> => users.find(u => u.usn === usn),
-  getUserByCredentials: async (fullName: string, usn: string): Promise<User | undefined> => users.find(u => u.fullName.toLowerCase() === fullName.toLowerCase() && u.usn.toLowerCase() === usn.toLowerCase()),
   addUser: (user: User) => {
     users.push(user);
+    return user;
   },
   updateUserStatus: (userId: string, status: 'approved' | 'rejected'): User | undefined => {
     const userIndex = users.findIndex(u => u.userId === userId);
@@ -138,9 +141,14 @@ export const db = {
         posts.splice(postIndex, 1);
     }
     // Also delete associated replies
-    replies = replies.filter(r => r.postId !== postId);
+    const remainingReplies = replies.filter(r => r.postId !== postId);
+    replies.length = 0;
+    replies.push(...remainingReplies);
+
     // Also delete associated chats
-    chats = chats.filter(c => c.postId !== postId);
+    const remainingChats = chats.filter(c => c.postId !== postId);
+    chats.length = 0;
+    chats.push(...remainingChats);
   },
   
   // Reply functions
@@ -154,31 +162,29 @@ export const db = {
   },
 
   // Chat functions
-  getChatsForUser: async(userId: string): Promise<Chat[]> => [...chats].filter(c => c.userAId === userId || c.userBId === userId).sort((a, b) => (b.messages.at(-1)?.timestamp ?? 0) - (a.messages.at(-1)?.timestamp ?? 0)),
-  getChatByPostAndUser: async(postId: string, userBId: string): Promise<Chat | undefined> => chats.find(c => c.postId === postId && c.userBId === userBId),
-  getOrCreateChat: async(postId: string, userA: User, userB: User): Promise<Chat> => {
-    let chat = chats.find(c => c.postId === postId && ((c.userAId === userA.userId && c.userBId === userB.userId) || (c.userAId === userB.userId && c.userBId === userA.userId)));
-    if (!chat) {
-        chat = {
-            chatId: `chat-${Date.now()}`,
-            postId: postId,
-            userAId: userA.userId,
-            userAName: userA.fullName,
-            userBId: userB.userId,
-            userBName: userB.fullName,
-            messages: []
-        };
-        chats.push(chat);
-    }
+  getChatById: async(chatId: string): Promise<Chat | undefined> => chats.find(c => c.chatId === chatId),
+  getChatsForUser: async(userId: string): Promise<Chat[]> => {
+    return [...chats]
+        .filter(c => c.userAId === userId || c.userBId === userId)
+        .sort((a, b) => {
+            const lastMessageA = messages.filter(m => m.chatId === a.chatId).sort((x, y) => y.timestamp - x.timestamp)[0];
+            const lastMessageB = messages.filter(m => m.chatId === b.chatId).sort((x, y) => y.timestamp - x.timestamp)[0];
+            return (lastMessageB?.timestamp ?? 0) - (lastMessageA?.timestamp ?? 0);
+        });
+  },
+  getChatByPostAndUsers: async(postId: string, userAId: string, userBId: string): Promise<Chat | undefined> => {
+    return chats.find(c => c.postId === postId && ((c.userAId === userAId && c.userBId === userBId) || (c.userAId === userBId && c.userBId === userAId)));
+  },
+  addChat: (chat: Chat) => {
+    chats.push(chat);
     return chat;
   },
-  addMessageToChat: async(chatId: string, message: Message): Promise<Message> => {
-    const chat = chats.find(c => c.chatId === chatId);
-    if (chat) {
-        chat.messages.push(message);
-        return message;
-    }
-    throw new Error("Chat not found");
+  
+  // Message functions
+  getMessagesByChatId: async(chatId: string): Promise<Message[]> => [...messages].filter(m => m.chatId === chatId).sort((a,b) => a.timestamp - b.timestamp),
+  addMessageToChat: async(message: Message): Promise<Message> => {
+    messages.push(message);
+    return message;
   },
 
   // Notification functions

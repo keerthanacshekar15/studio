@@ -1,116 +1,45 @@
 
 'use server';
 
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  doc,
-  updateDoc,
-  getDoc,
-  Timestamp,
-  orderBy,
-  deleteDoc,
-  writeBatch,
-  setDoc,
-} from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase/server-init';
 import type { User, Post, Notification, CreateUserDTO, Reply, Message, Chat } from './types';
+import { db } from './mock-db';
 
-// Initialize Firebase Admin SDK
-const { firestore } = initializeFirebase();
-
-const convertDocTimestampsToNumbers = (docData: any) => {
-    const data = { ...docData };
-    for (const key in data) {
-        if (data[key] instanceof Timestamp) {
-            data[key] = data[key].toMillis();
-        } else if (typeof data[key] === 'object' && data[key] !== null) {
-            // Recursively convert for nested objects if any
-            if (Array.isArray(data[key])) {
-                 data[key] = data[key].map(item => (typeof item === 'object' && item !== null) ? convertDocTimestampsToNumbers(item) : item);
-            } else {
-                data[key] = convertDocTimestampsToNumbers(data[key]);
-            }
-        }
-    }
-    return data;
-};
-
-
-// --- User Functions ---
+// This file is now the single source of truth for server-side data operations.
+// It uses the mock-db to simulate a database.
 
 export const getUsers = async (): Promise<User[]> => {
-  const usersCol = collection(firestore, 'users');
-  const userSnapshot = await getDocs(usersCol);
-  const userList = userSnapshot.docs.map(doc => convertDocTimestampsToNumbers({ userId: doc.id, ...doc.data() }) as User);
-  return userList;
+  return db.getUsers();
 };
 
 export const getUserById = async (userId: string): Promise<User | undefined> => {
-  const userRef = doc(firestore, 'users', userId);
-  const userSnap = await getDoc(userRef);
-  if (userSnap.exists()) {
-    return convertDocTimestampsToNumbers({ userId: userSnap.id, ...userSnap.data() }) as User;
-  }
-  return undefined;
+  return db.getUserById(userId);
 };
 
 export const getUserByCredentials = async (
   fullName: string,
   usn: string
 ): Promise<User | undefined> => {
-  const usersRef = collection(firestore, 'users');
-  const q = query(
-    usersRef,
-    where('fullName', '==', fullName),
-    where('usn', '==', usn)
-  );
-  const querySnapshot = await getDocs(q);
-  if (!querySnapshot.empty) {
-    const userDoc = querySnapshot.docs[0];
-    return convertDocTimestampsToNumbers({ userId: userDoc.id, ...userDoc.data() }) as User;
-  }
-  return undefined;
+  const users = await db.getUsers();
+  return users.find(u => u.fullName.toLowerCase() === fullName.toLowerCase() && u.usn.toLowerCase() === usn.toLowerCase());
 };
 
 export const createUser = async (
   userData: CreateUserDTO
 ): Promise<{ user: User; isExisting: boolean }> => {
-  const usersRef = collection(firestore, 'users');
-  const q = query(usersRef, where('usn', '==', userData.usn));
-  const querySnapshot = await getDocs(q);
-
-  if (!querySnapshot.empty) {
-    const existingUserDoc = querySnapshot.docs[0];
-    return { user: convertDocTimestampsToNumbers({ userId: existingUserDoc.id, ...existingUserDoc.data() }) as User, isExisting: true };
+  const existingUser = await db.getUserByUsn(userData.usn);
+  if (existingUser) {
+    return { user: existingUser, isExisting: true };
   }
 
-  const newUserRef = doc(collection(firestore, 'users'));
-  const createdAt = Date.now();
-  const newUser: Omit<User, 'userId'> = {
+  const newUser: User = {
     ...userData,
+    userId: `user-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     verificationStatus: 'pending',
-    createdAt: createdAt,
+    createdAt: Date.now(),
   };
 
-  await setDoc(newUserRef, newUser);
-
-  // Also create the ID verification document
-  const idVerificationRef = doc(collection(firestore, 'idVerifications'));
-  await setDoc(idVerificationRef, {
-      userId: newUserRef.id,
-      idCardImageURL: userData.idCardImageURL,
-      verificationStatus: 'pending',
-      fullName: userData.fullName,
-      usn: userData.usn
-  });
-
-
-  return { user: { ...newUser, userId: newUserRef.id }, isExisting: false };
+  db.addUser(newUser);
+  return { user: newUser, isExisting: false };
 };
 
 
@@ -118,243 +47,146 @@ export const updateUserStatus = async (
   userId: string,
   status: 'approved' | 'rejected'
 ): Promise<User | undefined> => {
-    const userRef = doc(firestore, 'users', userId);
-    await updateDoc(userRef, { verificationStatus: status });
+  const updatedUser = db.updateUserStatus(userId, status);
+  
+  if (updatedUser && !db.hasNotified(userId)) {
+      if (status === 'approved') {
+          db.addNotification({
+              notificationId: `notif-approval-${Date.now()}`,
+              userId: userId,
+              type: 'approval',
+              content: 'Congratulations! Your account has been approved by an administrator.',
+              link: '/app/feed',
+              createdAt: Date.now(),
+              readStatus: false,
+          });
+      } else if (status === 'rejected') {
+          db.addNotification({
+              notificationId: `notif-rejection-${Date.now()}`,
+              userId: userId,
+              type: 'rejection',
+              content: 'We are sorry, your account verification has been rejected.',
+              link: '/',
+              createdAt: Date.now(),
+              readStatus: false,
+          });
+      }
+      db.markAsNotified(userId);
+  }
 
-    const updatedUser = await getUserById(userId);
-
-    // Find and update the corresponding idVerifications document
-    const verificationsRef = collection(firestore, 'idVerifications');
-    const q = query(verificationsRef, where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
-    if(!querySnapshot.empty) {
-        const verificationDoc = querySnapshot.docs[0];
-        await updateDoc(verificationDoc.ref, { verificationStatus: status });
-    }
-
-    // Add notification
-    const notificationsRef = collection(firestore, `users/${userId}/notifications`);
-    if (status === 'approved') {
-        await addDoc(notificationsRef, {
-            userId,
-            type: 'approval',
-            content: 'Congratulations! Your account has been approved by an administrator.',
-            link: '/app/feed',
-            createdAt: Timestamp.now(),
-            readStatus: false,
-        });
-    } else if (status === 'rejected') {
-        await addDoc(notificationsRef, {
-            userId,
-            type: 'rejection',
-            content: 'We are sorry, your account verification has been rejected.',
-            link: '/',
-            createdAt: Timestamp.now(),
-            readStatus: false,
-        });
-    }
-
-    return updatedUser;
+  return updatedUser;
 };
 
-
 export const updateUser = async (userId: string, fullName: string, usn: string): Promise<User | undefined> => {
-    const userRef = doc(firestore, 'users', userId);
-    await updateDoc(userRef, { fullName, usn });
-    return getUserById(userId);
+    return db.updateUser(userId, fullName, usn);
 }
 
-
-// --- Post Functions ---
-
 export const getPosts = async (): Promise<Post[]> => {
-    const postsCol = collection(firestore, 'posts');
-    const q = query(postsCol, orderBy('createdAt', 'desc'));
-    const postSnapshot = await getDocs(q);
-    return postSnapshot.docs.map(doc => convertDocTimestampsToNumbers({ postId: doc.id, ...doc.data() }) as Post);
+    return db.getPosts();
 };
 
 export const getPostWithReplies = async (postId: string): Promise<{ post: Post; replies: Reply[] } | null> => {
-    const postRef = doc(firestore, 'posts', postId);
-    const postSnap = await getDoc(postRef);
-
-    if (!postSnap.exists()) return null;
-
-    const post = convertDocTimestampsToNumbers({ postId: postSnap.id, ...postSnap.data() }) as Post;
-
-    const repliesCol = collection(firestore, `posts/${postId}/replies`);
-    const q = query(repliesCol, orderBy('createdAt', 'asc'));
-    const repliesSnapshot = await getDocs(q);
-    const replies = repliesSnapshot.docs.map(doc => convertDocTimestampsToNumbers({ replyId: doc.id, ...doc.data() }) as Reply);
-
+    const post = await db.getPostById(postId);
+    if (!post) return null;
+    const replies = await db.getRepliesByPostId(postId);
     return { post, replies };
 }
 
-export const createPost = async (
-  postData: Omit<Post, 'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'>
-): Promise<Post> => {
-    const newPostRef = doc(collection(firestore, 'posts'));
-    const newPost: Omit<Post, 'postId'> = {
-        ...postData,
-        status: 'open',
-        replyCount: 0,
-        expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 days
-        createdAt: Date.now(),
-    };
-    await setDoc(newPostRef, newPost);
-    return { ...newPost, postId: newPostRef.id };
-};
-
-
-export const deletePost = async (postId: string): Promise<void> => {
-    const batch = writeBatch(firestore);
-
-    // Delete the post
-    const postRef = doc(firestore, 'posts', postId);
-    batch.delete(postRef);
-
-    // Delete all replies in the subcollection
-    const repliesRef = collection(firestore, `posts/${postId}/replies`);
-    const repliesSnapshot = await getDocs(repliesRef);
-    repliesSnapshot.forEach(replyDoc => batch.delete(replyDoc.ref));
-    
-    await batch.commit();
-};
-
-
-// --- Reply Functions ---
-
 export const addReplyToServer = async (postId: string, message: string, user: User, parentReplyId?: string | null): Promise<Reply> => {
-    const postRef = doc(firestore, 'posts', postId);
-    const repliesCol = collection(firestore, `posts/${postId}/replies`);
-    
-    const newReplyRef = doc(repliesCol);
-    const createdAt = Date.now();
-    const newReplyData: Omit<Reply, 'replyId'> = {
+    const newReply: Reply = {
+        replyId: `reply-${Date.now()}`,
         postId,
         message,
         repliedBy: user.userId,
         repliedByName: user.fullName,
-        createdAt: createdAt,
+        createdAt: Date.now(),
         parentReplyId: parentReplyId || undefined,
     };
-    await setDoc(newReplyRef, newReplyData);
-    
-    const postSnap = await getDoc(postRef);
-    if(postSnap.exists()){
-        const postData = postSnap.data() as Post;
-        const newReplyCount = (postData.replyCount || 0) + 1;
-        await updateDoc(postRef, { replyCount: newReplyCount });
+    db.addReply(newReply);
 
-        // Send notification if not replying to own post
-        if (postData.postedBy !== user.userId) {
-            const notificationsRef = collection(firestore, `users/${postData.postedBy}/notifications`);
-            await addDoc(notificationsRef, {
-                userId: postData.postedBy,
-                type: 'reply',
-                content: `${user.fullName} replied to your post: "${postData.title}"`,
-                link: `/app/post/${postId}`,
-                createdAt: Timestamp.now(),
-                readStatus: false,
-            });
-        }
+    const post = await db.getPostById(postId);
+    if (post && post.postedBy !== user.userId) {
+        db.addNotification({
+            notificationId: `notif-reply-${Date.now()}`,
+            userId: post.postedBy,
+            type: 'reply',
+            content: `${user.fullName} replied to your post: "${post.title}"`,
+            link: `/app/post/${postId}`,
+            createdAt: Date.now(),
+            readStatus: false,
+        });
     }
 
-    return { ...newReplyData, replyId: newReplyRef.id };
+    return newReply;
 };
 
 
-// --- Notification Functions ---
+export const createPost = async (
+  postData: Omit<Post, 'postId' | 'status' | 'replyCount' | 'expiresAt' | 'createdAt'>
+): Promise<Post> => {
+  const newPost: Post = {
+    ...postData,
+    postId: `post-${Date.now()}`,
+    status: 'open',
+    replyCount: 0,
+    expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 days
+    createdAt: Date.now(),
+  };
+  db.addPost(newPost);
+  return newPost;
+};
 
 export const getNotifications = async (userId: string): Promise<Notification[]> => {
-    const notificationsCol = collection(firestore, `users/${userId}/notifications`);
-    const q = query(notificationsCol, orderBy('createdAt', 'desc'));
-    const notificationSnapshot = await getDocs(q);
-    return notificationSnapshot.docs.map(doc => convertDocTimestampsToNumbers({ notificationId: doc.id, ...doc.data() }) as Notification);
+    return db.getNotifications(userId);
 };
 
-// --- Chat functions ---
-
 export const getChat = async (postId: string, currentUser: User): Promise<{ chat: Chat; post: Post } | null> => {
-    const postDoc = await getDoc(doc(firestore, 'posts', postId));
-    if (!postDoc.exists()) return null;
-    const post = convertDocTimestampsToNumbers({ postId: postDoc.id, ...postDoc.data() }) as Post;
+    const post = await db.getPostById(postId);
+    if (!post) return null;
 
-    const postOwner = await getUserById(post.postedBy);
+    const postOwner = await db.getUserById(post.postedBy);
     if (!postOwner) return null;
 
-    const chatsRef = collection(firestore, 'chats');
-    const q = query(
-      chatsRef,
-      where('postId', '==', postId),
-      where('userAId', 'in', [currentUser.userId, postOwner.userId]),
-      where('userBId', 'in', [currentUser.userId, postOwner.userId])
-    );
-    
-    const chatSnapshot = await getDocs(q);
-    let chatId, chatData;
-    
-    if (chatSnapshot.empty) {
-        // Create new chat
-        const newChatRef = doc(collection(firestore, 'chats'));
-        chatData = {
-            chatId: newChatRef.id,
-            postId: postId,
+    let chat = await db.getChatByPostAndUsers(postId, currentUser.userId, postOwner.userId);
+
+    if (!chat) {
+        const newChat: Chat = {
+            chatId: `chat-${Date.now()}`,
+            postId,
             userAId: postOwner.userId,
             userAName: postOwner.fullName,
             userBId: currentUser.userId,
             userBName: currentUser.fullName,
+            messages: []
         };
-        await setDoc(newChatRef, chatData);
-        chatId = newChatRef.id;
-    } else {
-        const chatDoc = chatSnapshot.docs[0];
-        chatId = chatDoc.id;
-        chatData = chatDoc.data();
+        chat = db.addChat(newChat);
     }
+    
+    chat.messages = await db.getMessagesByChatId(chat.chatId);
 
-    // get messages
-    const messagesRef = collection(firestore, `chats/${chatId}/messages`);
-    const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'));
-    const messagesSnapshot = await getDocs(messagesQuery);
-    const messages = messagesSnapshot.docs.map(d => convertDocTimestampsToNumbers({messageId: d.id, ...d.data()}) as Message)
-
-    return { chat: { ...chatData, chatId, messages } as Chat, post };
+    return { chat, post };
 }
 
 export const addMessage = async(chatId: string, text: string, sender: User): Promise<Message> => {
-    const messagesRef = collection(firestore, `chats/${chatId}/messages`);
-    const timestamp = Date.now();
-    const messageData: Omit<Message, 'messageId'> = {
+    const message: Message = {
+        messageId: `msg-${Date.now()}`,
         chatId,
         text,
         senderId: sender.userId,
         senderName: sender.fullName,
-        timestamp: timestamp,
+        timestamp: Date.now()
     }
-    const newDocRef = await addDoc(messagesRef, messageData);
-    return { ...messageData, messageId: newDocRef.id };
+    return db.addMessageToChat(message);
+}
+
+export const deletePost = async(postId: string): Promise<void> => {
+    return db.deletePost(postId);
 }
 
 // Add this import to the top of the file
 
 // Also add a function to get ID verification requests for the admin page
-export const getIdVerifications = async () => {
-    const verificationsCol = collection(firestore, 'idVerifications');
-    const q = query(verificationsCol, where('verificationStatus', '==', 'pending'));
-    const snapshot = await getDocs(q);
-    
-    const verifications = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            userId: data.userId,
-            fullName: data.fullName,
-            usn: data.usn,
-            idCardImageURL: data.idCardImageURL,
-            verificationStatus: data.verificationStatus,
-            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : data.createdAt,
-        } as User;
-    });
-
-    return verifications;
+export const getIdVerifications = async (): Promise<User[]> => {
+    const allUsers = await db.getUsers();
+    return allUsers.filter(u => u.verificationStatus === 'pending');
 }
