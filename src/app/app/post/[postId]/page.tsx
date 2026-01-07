@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Post, Reply, User } from '@/lib/types';
 import { addReplyToServer, getPostWithReplies, deletePost } from '@/lib/server-actions';
@@ -132,13 +132,14 @@ function DeletePostButton({ postId }: { postId: string }) {
 
 
 export default function PostDetailsPage({ params }: { params: { postId: string } }) {
-    const { postId } = use(params);
+    const { postId } = params;
     const { user, isLoading: isAuthLoading } = useAuth();
     const [data, setData] = useState<{ post: Post; replies: Reply[] } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     
     useEffect(() => {
         if (postId) {
+            setIsLoading(true);
             getPostWithReplies(postId).then(result => {
                 setData(result);
                 setIsLoading(false);
@@ -149,7 +150,7 @@ export default function PostDetailsPage({ params }: { params: { postId: string }
     const handleReplyAdded = (newReply: Reply) => {
         setData(prevData => {
             if (!prevData) return null;
-            const newReplies = [...prevData.replies, newReply];
+            const newReplies = [...prevData.replies, newReply].sort((a,b) => a.createdAt - b.createdAt);
             return {
                 ...prevData,
                 replies: newReplies,
