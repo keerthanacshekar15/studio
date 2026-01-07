@@ -15,10 +15,10 @@ const CustomLogoIcon = ({ className }: { className?: string }) => (
       <circle cx="10" cy="10" r="7"></circle>
       <line x1="15" y1="15" x2="20" y2="20"></line>
       
-      {/* Larger Building inside */}
-      <path d="M7 13v-3h6v3"></path>
-      <path d="M7 13l3-3l3 3"></path>
-      <path d="M10 10V8"></path>
+      {/* Smaller Building inside */}
+      <path d="M8 12h4v-2h-4z"></path>
+      <path d="M8 12l2-2l2 2"></path>
+      <path d="M10 10V9"></path>
     </svg>
   );
 
