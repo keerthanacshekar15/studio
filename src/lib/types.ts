@@ -34,7 +34,7 @@ export type Post = {
 export type Reply = {
   replyId: string;
   postId: string;
-  parentReplyId?: string | null; // For nested replies
+  parentReplyId?: string; 
   repliedBy: string; // userId
   repliedByName: string;
   message: string;
@@ -55,7 +55,7 @@ export type Message = {
   messageId: string;
   chatId: string;
   senderId: string;
-  senderName: string;
+  senderName:string;
   text: string;
   timestamp: number;
 };
@@ -64,9 +64,9 @@ export type Message = {
 export type Notification = {
   notificationId: string;
   userId: string;
-  type: 'reply' | 'approval' | 'rejection';
+  type: 'reply' | 'approval' | 'rejection' | 'message';
   content: string;
   link: string;
-  createdAt: number;
+  createdAt: any; // Can be Timestamp or number
   readStatus: boolean;
 };

@@ -54,7 +54,7 @@ export default function UserSignupPage() {
           });
       }
     }
-  }, [state]); // Depend on the state object which changes when the action completes.
+  }, [state, toast, login, router]); 
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -98,7 +98,7 @@ export default function UserSignupPage() {
               <Label htmlFor="usn">USN / Roll Number</Label>
                <div className="relative">
                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="usn" name="usn" placeholder="e.g., 4VM21CS001" required className="pl-10"/>
+                  <Input id="usn" name="usn" placeholder="e.g., 1AB21CS001" required className="pl-10"/>
                </div>
                {state.errors?.usn && <p className="text-sm text-destructive">{state.errors.usn[0]}</p>}
             </div>

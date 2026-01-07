@@ -37,7 +37,7 @@ export default function ProfilePage() {
       });
       // Re-run login logic to update user context with new details
       login(state.updatedUser.userId, 'user');
-    } else if (state.message) {
+    } else if (state.message && !state.success) {
       toast({
         title: 'Update Failed',
         description: state.message,

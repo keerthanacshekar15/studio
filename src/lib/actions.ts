@@ -36,7 +36,7 @@ export async function adminSignup(
 
 const UserSignupSchema = z.object({
   fullName: z.string().min(3, 'Full name must be at least 3 characters.'),
-  usn: z.string().regex(/^4VM/, 'USN must start with "4VM".'),
+  usn: z.string().regex(/^[a-zA-Z0-9]+$/, 'USN must be alphanumeric.').min(5, "USN must be at least 5 characters."),
   idCardImageURL: z.string().min(1, 'Please upload an ID card image.'),
 });
 
@@ -236,7 +236,7 @@ export async function newPostAction(prevState: NewPostState, formData: FormData)
 const UpdateUserSchema = z.object({
     userId: z.string(),
     fullName: z.string().min(3, 'Full name must be at least 3 characters.'),
-    usn: z.string().regex(/^4VM/, 'USN must start with "4VM".'),
+    usn: z.string().regex(/^[a-zA-Z0-9]+$/, 'USN must be alphanumeric.').min(5, "USN must be at least 5 characters."),
 });
 
 export type UpdateUserState = {
