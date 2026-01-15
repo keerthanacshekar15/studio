@@ -27,182 +27,6 @@ const initialUsers: User[] = [
     verificationStatus: 'approved',
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10,
     },
-    {
-        userId: 'user-4',
-        fullName: 'Diana Prince',
-        usn: '1AB21ME001',
-        idCardImageURL: 'https://picsum.photos/seed/4/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3,
-    },
-    {
-        userId: 'user-5',
-        fullName: 'Ethan Hunt',
-        usn: '1AB21EC002',
-        idCardImageURL: 'https://picsum.photos/seed/5/600/400',
-        verificationStatus: 'pending',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1,
-    },
-    {
-        userId: 'user-6',
-        fullName: 'Fiona Glenanne',
-        usn: '1AB21CV003',
-        idCardImageURL: 'https://picsum.photos/seed/6/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 8,
-    },
-    {
-        userId: 'user-7',
-        fullName: 'George Constanza',
-        usn: '1AB20CS004',
-        idCardImageURL: 'https://picsum.photos/seed/7/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 15,
-    },
-    {
-        userId: 'user-8',
-        fullName: 'Hannah Montana',
-        usn: '1AB20ME005',
-        idCardImageURL: 'https://picsum.photos/seed/8/600/400',
-        verificationStatus: 'rejected',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 4,
-    },
-    {
-        userId: 'user-9',
-        fullName: 'Ian Malcolm',
-        usn: '1AB20EC006',
-        idCardImageURL: 'https://picsum.photos/seed/9/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 12,
-    },
-    {
-        userId: 'user-10',
-        fullName: 'Jane Doe',
-        usn: '1AB22CS007',
-        idCardImageURL: 'https://picsum.photos/seed/10/600/400',
-        verificationStatus: 'pending',
-        createdAt: Date.now() - 1000 * 60 * 30,
-    },
-    {
-        userId: 'user-11',
-        fullName: 'Kevin McCallister',
-        usn: '1AB22ME008',
-        idCardImageURL: 'https://picsum.photos/seed/11/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 7,
-    },
-    {
-        userId: 'user-12',
-        fullName: 'Laura Palmer',
-        usn: '1AB22EC009',
-        idCardImageURL: 'https://picsum.photos/seed/12/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 20,
-    },
-    {
-        userId: 'user-13',
-        fullName: 'Michael Scott',
-        usn: '1AB19CS010',
-        idCardImageURL: 'https://picsum.photos/seed/13/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 30,
-    },
-    {
-        userId: 'user-14',
-        fullName: 'Nancy Drew',
-        usn: '1AB19ME011',
-        idCardImageURL: 'https://picsum.photos/seed/14/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 6,
-    },
-    {
-        userId: 'user-15',
-        fullName: 'Oscar Martinez',
-        usn: '1AB19EC012',
-        idCardImageURL: 'https://picsum.photos/seed/15/600/400',
-        verificationStatus: 'pending',
-        createdAt: Date.now() - 1000 * 60 * 60 * 2,
-    },
-    {
-        userId: 'user-16',
-        fullName: 'Pam Beesly',
-        usn: '1AB21CS013',
-        idCardImageURL: 'https://picsum.photos/seed/16/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 9,
-    },
-    {
-        userId: 'user-17',
-        fullName: 'Quentin Coldwater',
-        usn: '1AB21ME014',
-        idCardImageURL: 'https://picsum.photos/seed/17/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 11,
-    },
-    {
-        userId: 'user-18',
-        fullName: 'Rachel Green',
-        usn: '1AB21EC015',
-        idCardImageURL: 'https://picsum.photos/seed/18/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 14,
-    },
-    {
-        userId: 'user-19',
-        fullName: 'Steve Rogers',
-        usn: '1AB20CS016',
-        idCardImageURL: 'https://picsum.photos/seed/19/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 18,
-    },
-    {
-        userId: 'user-20',
-        fullName: 'Tony Stark',
-        usn: '1AB20ME017',
-        idCardImageURL: 'https://picsum.photos/seed/20/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 25,
-    },
-    {
-        userId: 'user-21',
-        fullName: 'Ursula Buffay',
-        usn: '1AB20EC018',
-        idCardImageURL: 'https://picsum.photos/seed/21/600/400',
-        verificationStatus: 'rejected',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1,
-    },
-    {
-        userId: 'user-22',
-        fullName: 'Victor Frankenstein',
-        usn: '1AB22CS019',
-        idCardImageURL: 'https://picsum.photos/seed/22/600/400',
-        verificationStatus: 'pending',
-        createdAt: Date.now() - 1000 * 60 * 60 * 1,
-    },
-    {
-        userId: 'user-23',
-        fullName: 'Walter White',
-        usn: '1AB22ME020',
-        idCardImageURL: 'https://picsum.photos/seed/23/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 40,
-    },
-    {
-        userId: 'user-24',
-        fullName: 'Xena Warrior',
-        usn: '1AB22EC021',
-        idCardImageURL: 'https://picsum.photos/seed/24/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 13,
-    },
-    {
-        userId: 'user-25',
-        fullName: 'Yoda Master',
-        usn: '1AB18CS022',
-        idCardImageURL: 'https://picsum.photos/seed/25/600/400',
-        verificationStatus: 'approved',
-        createdAt: Date.now() - 1000 * 60 * 60 * 24 * 100,
-    },
 ];
 
 const initialPosts: Post[] = [
@@ -244,8 +68,8 @@ const initialPosts: Post[] = [
         location: 'Student Union',
         date: new Date('2024-05-23T18:00:00Z').getTime(),
         itemImageURL: placeholderImages[5].imageUrl,
-        postedBy: 'user-4',
-        postedByName: 'Diana Prince',
+        postedBy: 'user-1',
+        postedByName: 'Alice Johnson',
         status: 'open',
         replyCount: 1,
         expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 29,
@@ -259,8 +83,8 @@ const initialPosts: Post[] = [
         location: 'Gym',
         date: new Date('2024-05-23T11:00:00Z').getTime(),
         itemImageURL: placeholderImages[6].imageUrl,
-        postedBy: 'user-6',
-        postedByName: 'Fiona Glenanne',
+        postedBy: 'user-3',
+        postedByName: 'Charlie Brown',
         status: 'open',
         replyCount: 0,
         expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 29,
@@ -289,8 +113,8 @@ const initialReplies: Reply[] = [
     {
         replyId: 'reply-3',
         postId: 'post-3',
-        repliedBy: 'user-11',
-        repliedByName: 'Kevin McCallister',
+        repliedBy: 'user-2',
+        repliedByName: 'Bob Williams',
         message: 'Is there a reward if found?',
         createdAt: Date.now() - 1000 * 60 * 60 * 2,
     },
@@ -365,7 +189,7 @@ export class MockDB {
 
   // --- User Methods ---
   async getUsers(): Promise<User[]> {
-    return JSON.parse(JSON.stringify(this.users));
+    return this.users;
   }
 
   async getUserById(userId: string): Promise<User | undefined> {
@@ -467,7 +291,7 @@ export class MockDB {
         };
         this.chats.push(chat);
     }
-    return JSON.parse(JSON.stringify(chat));
+    return chat;
   }
 
   async addMessageToChat(chatId: string, message: Message): Promise<Message> {
