@@ -5,9 +5,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { usePathname, useRouter } from 'next/navigation';
 import type { User } from '@/lib/types';
 import { getUserById } from '@/lib/server-actions';
-import { useUser as useFirebaseUser } from '@/firebase';
-import { signInAnonymously, signOut } from 'firebase/auth';
-import { useAuth as useFirebaseAuth } from '@/firebase';
 
 type AuthUser = (User & { type: 'user' }) | { adminId: string; type: 'admin' };
 
@@ -27,22 +24,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const firebaseAuth = useFirebaseAuth();
-  const { user: firebaseUser, isUserLoading: isFirebaseUserLoading } = useFirebaseUser();
-
-  const logout = useCallback(async () => {
+  
+  const logout = useCallback(() => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     setUser(null);
-    await signOut(firebaseAuth);
     router.push('/');
-  }, [firebaseAuth, router]);
-
-
-  useEffect(() => {
-    if (!firebaseUser && !isFirebaseUserLoading) {
-      signInAnonymously(firebaseAuth).catch(console.error);
-    }
-  }, [firebaseUser, isFirebaseUserLoading, firebaseAuth]);
+  }, [router]);
 
 
   useEffect(() => {
@@ -76,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isLoading || isFirebaseUserLoading) return;
+    if (isLoading) return;
 
     const isAuthPage = pathname.startsWith('/signup') || pathname === '/' || pathname.startsWith('/login');
     const isAppPage = pathname.startsWith('/app') || pathname === '/pending';
@@ -117,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 break;
         }
     }
-  }, [user, isLoading, isFirebaseUserLoading, pathname, router, logout]);
+  }, [user, isLoading, pathname, router, logout]);
 
 
   const login = useCallback((id: string, type: 'user' | 'admin') => {
@@ -145,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const value = { user, login, logout, isLoading: isLoading || isFirebaseUserLoading };
+  const value = { user, login, logout, isLoading };
 
   return (
     <AuthContext.Provider value={value}>
