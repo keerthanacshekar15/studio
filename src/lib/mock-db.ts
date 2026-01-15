@@ -280,8 +280,8 @@ const initialReplies: Reply[] = [
     {
         replyId: 'reply-2',
         postId: 'post-1',
-        repliedBy: 'user-1',
         parentReplyId: 'reply-1',
+        repliedBy: 'user-1',
         repliedByName: 'Alice Johnson',
         message: 'I did! They didn\'t have it, but thanks for the suggestion.',
         createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3,
@@ -346,7 +346,7 @@ const initialChats: Chat[] = [
     }
 ]
 
-class MockDB {
+export class MockDB {
   private users: User[];
   private posts: Post[];
   private notifications: Notification[];
@@ -478,5 +478,3 @@ class MockDB {
       return message;
   }
 }
-
-export const db = new MockDB();

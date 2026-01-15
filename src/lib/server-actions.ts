@@ -2,7 +2,7 @@
 'use server';
 
 import type { User, Post, Notification, CreateUserDTO, Reply, Message, Chat } from './types';
-import { db } from './mock-db';
+import { db } from './db-instance';
 
 // This file is now the single source of truth for server-side data operations.
 // It uses the mock-db to simulate a database.
