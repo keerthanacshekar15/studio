@@ -105,7 +105,7 @@ service cloud.firestore {
     /**
      * @description User documents contain public and private user information.
      * @path /users/{userId}
-     * @allow (create) A new user can create their own user document. `auth.uid` must match `{userId}`.
+     * @allow (create) Allows a new user to create their own user document. `userId` in path must match `userId` in the document body.
      * @allow (get, update) An authenticated user can read or update their own document.
      * @deny (list) Listing all users is forbidden to protect user privacy.
      * @deny (get) A user cannot read another user's document.
@@ -114,7 +114,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow create: if request.resource.data.userId == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
     }
@@ -130,7 +130,7 @@ service cloud.firestore {
     match /idVerifications/{verificationId} {
       allow get: if isAdmin();
       allow list: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if request.resource.data.userId == request.auth.uid;
       allow update: if isAdmin() && resource != null;
       allow delete: if isAdmin() && resource != null;
     }
