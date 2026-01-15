@@ -94,6 +94,7 @@ export async function validateUserSignup(
     };
   } catch (err: any) {
     console.error('Error in validateUserSignup:', err);
+    // The message from FirestorePermissionError will be passed here
     return {
       message:
         err.message || 'An unexpected error occurred during user creation.',

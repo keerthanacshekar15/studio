@@ -1,10 +1,11 @@
 
 'use server';
 
-import { initializeApp, getApps, getApp, cert } from 'firebase/app';
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, limit, serverTimestamp, orderBy, writeBatch, FieldValue, Timestamp } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, limit, serverTimestamp, orderBy, writeBatch, FieldValue, Timestamp, setDoc } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 import type { User, Post, Notification, CreateUserDTO, Reply, Message, Chat } from './types';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 function initializeFirebase() {
@@ -37,7 +38,8 @@ export const getUsers = async (): Promise<User[]> => {
 };
 
 export const getUserById = async (userId: string): Promise<User | undefined> => {
-    const userDoc = await getDoc(doc(firestore, 'users', userId));
+    const userDocRef = doc(firestore, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
     if (!userDoc.exists()) {
         return undefined;
     }
@@ -45,7 +47,7 @@ export const getUserById = async (userId: string): Promise<User | undefined> => 
     // Convert Timestamps to numbers
     return {
         ...user,
-        createdAt: (user.createdAt as unknown as Timestamp).toMillis(),
+        createdAt: (user.createdAt as unknown as Timestamp)?.toMillis() || Date.now(),
     };
 };
 
@@ -64,13 +66,14 @@ export const getUserByCredentials = async (
     
     const user = userQuery.docs[0].data() as User;
 
+    // Case-insensitive comparison for full name
     if (user.fullName.toLowerCase() !== fullName.toLowerCase()) {
         return undefined;
     }
 
     return {
         ...user,
-        createdAt: (user.createdAt as unknown as Timestamp).toMillis(),
+        createdAt: (user.createdAt as unknown as Timestamp)?.toMillis() || Date.now(),
     };
 };
 
@@ -82,11 +85,9 @@ export const createUser = async (
 
     if (!existingUserQuery.empty) {
         const existingUser = existingUserQuery.docs[0].data() as User;
+        const createdAt = (existingUser.createdAt as unknown as Timestamp)?.toMillis() || Date.now();
         return { 
-            user: {
-                ...existingUser,
-                createdAt: (existingUser.createdAt as unknown as Timestamp).toMillis()
-            }, 
+            user: { ...existingUser, createdAt }, 
             isExisting: true 
         };
     }
@@ -98,13 +99,27 @@ export const createUser = async (
         ...userData,
         userId: userId,
         verificationStatus: 'pending',
-        createdAt: serverTimestamp() as any,
+        createdAt: serverTimestamp() as any, // Firestore will convert this
     };
     
-    await updateDoc(newUserDocRef, newUser);
+    try {
+        await setDoc(newUserDocRef, newUser);
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: newUserDocRef.path,
+                operation: 'create',
+                requestResourceData: newUser,
+            });
+            // Re-throw the rich error so the client action can catch it.
+            throw permissionError;
+        }
+        // Throw other errors as-is
+        throw error;
+    }
     
     const createdUser = await getUserById(userId);
-    if(!createdUser) throw new Error("Failed to create user.");
+    if(!createdUser) throw new Error("Failed to fetch newly created user.");
 
     return { user: createdUser, isExisting: false };
 };
@@ -119,6 +134,7 @@ export const updateUserStatus = async (
 
     const updatedUser = await getUserById(userId);
 
+    // Create a notification for the user about their status change
     if (updatedUser) {
         const notificationRef = collection(firestore, 'users', userId, 'notifications');
         const existingNotifs = await getDocs(query(notificationRef, where('type', 'in', ['approval', 'rejection']), limit(1)));
@@ -126,27 +142,22 @@ export const updateUserStatus = async (
         if (existingNotifs.empty) {
             const notificationId = `notif-${status}-${Date.now()}`;
             const newNotifRef = doc(notificationRef, notificationId);
-            if (status === 'approved') {
-                await updateDoc(newNotifRef, {
-                    notificationId,
-                    userId: userId,
-                    type: 'approval',
-                    content: 'Congratulations! Your account has been approved by an administrator.',
-                    link: '/app/feed',
-                    createdAt: serverTimestamp(),
-                    readStatus: false,
-                });
-            } else if (status === 'rejected') {
-                 await updateDoc(newNotifRef, {
-                    notificationId,
-                    userId: userId,
-                    type: 'rejection',
-                    content: 'We are sorry, your account verification has been rejected.',
-                    link: '/',
-                    createdAt: serverTimestamp(),
-                    readStatus: false,
-                });
-            }
+            
+            const notificationContent = status === 'approved'
+                ? 'Congratulations! Your account has been approved by an administrator.'
+                : 'We are sorry, your account verification has been rejected.';
+            
+            const notificationLink = status === 'approved' ? '/app/feed' : '/';
+
+            await setDoc(newNotifRef, {
+                notificationId,
+                userId: userId,
+                type: status === 'approved' ? 'approval' : 'rejection',
+                content: notificationContent,
+                link: notificationLink,
+                createdAt: serverTimestamp(),
+                readStatus: false,
+            });
         }
     }
 
@@ -217,7 +228,7 @@ export const createPost = async (
         createdAt: serverTimestamp(),
         expiresAt: Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     };
-    await updateDoc(newPostRef, newPostData);
+    await setDoc(newPostRef, newPostData);
     
     const createdDoc = await getDoc(newPostRef);
     const createdData = createdDoc.data()!;
@@ -251,7 +262,7 @@ export const addReplyToServer = async (postId: string, message: string, user: Us
     const replyCollection = collection(postRef, 'replies');
     
     const newReplyRef = doc(replyCollection);
-    const newReply: Omit<Reply, 'replyId' | 'createdAt'> = {
+    const newReplyData: Omit<Reply, 'replyId' | 'createdAt'> = {
         postId,
         message,
         repliedBy: user.userId,
@@ -259,8 +270,8 @@ export const addReplyToServer = async (postId: string, message: string, user: Us
         ...(parentReplyId && { parentReplyId }),
     };
 
-    await updateDoc(newReplyRef, {
-      ...newReply,
+    await setDoc(newReplyRef, {
+      ...newReplyData,
       createdAt: serverTimestamp()
     });
     
@@ -269,11 +280,12 @@ export const addReplyToServer = async (postId: string, message: string, user: Us
     const postDoc = await getDoc(postRef);
     const postData = postDoc.data();
 
+    // Notify post owner of the new reply
     if (postData && postData.postedBy !== user.userId) {
         const notificationRef = collection(firestore, 'users', postData.postedBy, 'notifications');
         const notificationId = `notif-reply-${Date.now()}`;
         const newNotifRef = doc(notificationRef, notificationId);
-        await updateDoc(newNotifRef, {
+        await setDoc(newNotifRef, {
             notificationId,
             userId: postData.postedBy,
             type: 'reply',
@@ -314,9 +326,17 @@ export const getNotifications = async (userId: string): Promise<Notification[]> 
 // --- Chat Functions ---
 export const getChat = async (postId: string, currentUser: User): Promise<{ chat: Chat; post: Post } | null> => {
     const postDoc = await getDoc(doc(firestore, 'posts', postId));
-    const post = postDoc.data() as Post;
+    const postData = postDoc.data();
 
-    if (!post) return null;
+    if (!postData) return null;
+    const post = {
+      ...postData,
+      postId: postDoc.id,
+      date: (postData.date as Timestamp).toMillis(),
+      createdAt: (postData.createdAt as Timestamp).toMillis(),
+      expiresAt: (postData.expiresAt as Timestamp).toMillis(),
+    } as Post;
+
 
     const postOwner = await getUserById(post.postedBy);
     if (!postOwner) return null;
@@ -335,11 +355,13 @@ export const getChat = async (postId: string, currentUser: User): Promise<{ chat
             userAName: postOwner.fullName,
             userBId: currentUser.userId,
             userBName: currentUser.fullName,
+            messages: [],
         };
-        await updateDoc(chatRef, newChat);
-        chatData = { ...newChat, messages: [] };
+        await setDoc(chatRef, { ...newChat, messages: undefined }); // Don't store messages array in chat doc
+        chatData = newChat;
     } else {
         chatData = chatDocSnap.data() as Chat;
+        chatData.messages = [];
     }
 
     const messagesSnapshot = await getDocs(query(collection(chatRef, 'messages'), orderBy('timestamp', 'asc')));
@@ -365,7 +387,7 @@ export const addMessage = async(chatId: string, text: string, sender: User): Pro
         senderName: sender.fullName,
         timestamp: serverTimestamp()
     };
-    await updateDoc(newMessageRef, messageData);
+    await setDoc(newMessageRef, messageData);
 
     const createdDoc = await getDoc(newMessageRef);
     const createdData = createdDoc.data()!;
